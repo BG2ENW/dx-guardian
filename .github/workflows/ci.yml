@@ -1,0 +1,76 @@
+name: DX Guardian CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd dx_guardian
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Run syntax check
+      run: |
+        cd dx_guardian
+        python -m py_compile backend/app.py backend/config.py
+    
+    - name: Run unit tests
+      run: |
+        cd dx_guardian
+        python -m unittest discover -s tests -p "test_*.py"
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      if: always()
+      with:
+        files: ./coverage.xml
+        fail_ci_if_error: false
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker image
+      run: docker build -t dx-guardian:${{ github.sha }} .
+    
+    - name: Test Docker image
+      run: |
+        docker run -d --rm --name dx-guardian-test -p 5000:5000 \
+          -e SECRET_KEY=test-key \
+          -e WAVELOG_URL=http://example.com \
+          -e WAVELOG_API_KEY=test-key \
+          dx-guardian:${{ github.sha }}
+        sleep 10
+        curl -f http://localhost:5000/health || exit 1
+        docker stop dx-guardian-test
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Deploy notification
+      run: |
+        echo "::notice::Ready to deploy to production"
+        echo "Image tag: ${{ github.sha }}"

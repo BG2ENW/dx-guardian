@@ -7,9 +7,31 @@ from pathlib import Path
 # 项目根目录
 BASE_DIR = Path(__file__).parent.parent
 
+
+def _is_production() -> bool:
+    flask_env = os.environ.get('FLASK_ENV', '').strip().lower()
+    app_env = os.environ.get('APP_ENV', '').strip().lower()
+    return flask_env == 'production' or app_env == 'production'
+
+
+def _get_env(
+    key: str,
+    default: str = '',
+    required_in_production: bool = False,
+) -> str:
+    value = os.environ.get(key, default)
+    if required_in_production and _is_production() and not value:
+        raise RuntimeError(f'Missing required environment variable: {key}')
+    return value
+
 # Flask 配置
-SECRET_KEY = os.environ.get('SECRET_KEY', 'dx-guardian-secret-key-change-in-production')
+SECRET_KEY = _get_env(
+    'SECRET_KEY',
+    'dx-guardian-dev-secret-key',
+    required_in_production=True,
+)
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+SOCKETIO_CORS_ALLOWED_ORIGINS = _get_env('SOCKETIO_CORS_ALLOWED_ORIGINS', '*')
 
 # Cluster Telnet 配置
 CLUSTER_SERVERS = [
@@ -44,20 +66,25 @@ NOAA_DATA_CACHE_TTL = 3600  # NOAA 数据缓存时间（秒）
 DXCC_PREFIX_FILE = BASE_DIR / 'data' / 'prefix_to_dxcc.json'
 
 # Wavelog 集成配置
-WAVELOG_URL = 'https://cqcqcq.com.cn'
-WAVELOG_API_KEY = 'wl853e15b5f7745'
+WAVELOG_URL = _get_env('WAVELOG_URL', '', required_in_production=True)
+WAVELOG_API_KEY = _get_env('WAVELOG_API_KEY', '', required_in_production=True)
 
 # ClubLog Application Password（用于 callbook 查询）
 # 获取方式：登录 ClubLog -> Settings -> App Passwords
-CLUBLOG_APP_PASSWORD = os.environ.get('CLUBLOG_APP_PASSWORD', '219-Pj422-Lf758-Tf608-Gx705-Ad166-Gg')
+CLUBLOG_APP_PASSWORD = _get_env('CLUBLOG_APP_PASSWORD', '', required_in_production=True)
 
 # QRZ.com XML API 配置（用于呼号 Grid 查询）
-QRZ_USERNAME = os.environ.get('QRZ_USERNAME', 'BG2ENW')
-QRZ_PASSWORD = os.environ.get('QRZ_PASSWORD', 'b-jKb7wGAH')
+QRZ_USERNAME = _get_env('QRZ_USERNAME', '', required_in_production=True)
+QRZ_PASSWORD = _get_env('QRZ_PASSWORD', '', required_in_production=True)
 
 # HamQTH API 配置（备用呼号 Grid 查询）
-HAMQTH_USERNAME = os.environ.get('HAMQTH_USERNAME', 'BG2ENW')
-HAMQTH_PASSWORD = os.environ.get('HAMQTH_PASSWORD', '-wNZzGej2H')
+HAMQTH_USERNAME = _get_env('HAMQTH_USERNAME', '', required_in_production=True)
+HAMQTH_PASSWORD = _get_env('HAMQTH_PASSWORD', '', required_in_production=True)
+
+# Web Push (VAPID)
+VAPID_PUBLIC_KEY = _get_env('VAPID_PUBLIC_KEY', '', required_in_production=True)
+VAPID_PRIVATE_KEY_PEM = _get_env('VAPID_PRIVATE_KEY_PEM', '', required_in_production=True)
+VAPID_EMAIL = _get_env('VAPID_EMAIL', '', required_in_production=True)
 
 # 波段列表（用于统计和过滤）
 ALL_BANDS = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m', '2m', '70cm', '23cm']

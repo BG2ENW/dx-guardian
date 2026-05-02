@@ -20,15 +20,22 @@ sys.path.insert(0, str(BACKEND_DIR))
 
 from config import (
     CLUSTER_SERVERS, MY_CALL, RECONNECT_DELAYS, MAX_RECONNECT_ATTEMPTS,
-    SPOT_CACHE_SIZE, ALL_BANDS, WAVELOG_URL, WAVELOG_API_KEY
+    SPOT_CACHE_SIZE, ALL_BANDS, WAVELOG_URL, WAVELOG_API_KEY, SECRET_KEY,
+    SOCKETIO_CORS_ALLOWED_ORIGINS, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY_PEM,
+    VAPID_EMAIL
 )
 from spot_parser import SpotParser, SpotDeduplicator, SpotRateLimiter
 from coordinate_resolver import resolve_coordinates
 from adif_parser import ADIFParser
 from dxcc_translator import get_dxcc_cn, translate_dxcc_list
 from csv_parser import CSVParser
-from scorer import OpportunityScorer
 from alert_engine_v2 import AlertEngineV2, init_alert_engine, get_alert_engine
+from wavelog_routes import register_wavelog_routes
+from push_routes import register_push_routes
+from watchlist_routes import register_watchlist_routes
+from station_routes import register_station_routes, load_station_config
+from log_routes import register_log_routes
+from score_routes import register_score_routes
 
 # ========== 预警引擎（V2增强版）===========
 # 旧 AlertEngine 已迁移到 alert_engine_v2.py，使用 AlertEngineV2
@@ -136,8 +143,12 @@ def init_scorer():
 
 # ========== Flask ==========
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'dx-guard-key'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+app.config['SECRET_KEY'] = SECRET_KEY
+socketio = SocketIO(
+    app,
+    cors_allowed_origins=SOCKETIO_CORS_ALLOWED_ORIGINS,
+    async_mode='threading'
+)
 
 # ========== 全局状态 ==========
 parser = SpotParser()
@@ -147,6 +158,7 @@ band_counts = {band: 0 for band in ALL_BANDS}
 total_spots = 0
 cluster_connected = False
 lock = threading.Lock()
+scorer = None
 
 # 数据源健康状态跟踪
 last_psk_success = 0  # PSKReporter最后成功时间
@@ -173,6 +185,85 @@ import json
 def log(msg):
     """带flush的日志"""
     print(msg, flush=True)
+
+
+def _external_api_error(service: str, err: Exception):
+    """统一记录外部依赖异常，避免向前端透出内部细节。"""
+    log(f'[{service}] 外部调用失败: {type(err).__name__}: {err}')
+
+
+def _external_failure_payload(message: str = '外部服务暂时不可用') -> dict:
+    return {'ok': False, 'error': message}
+
+
+register_wavelog_routes(
+    app,
+    {
+        'log': log,
+        'external_api_error': _external_api_error,
+        'external_failure_payload': _external_failure_payload,
+        'my_call': MY_CALL,
+        'wavelog_url': WAVELOG_URL,
+        'wavelog_api_key': WAVELOG_API_KEY,
+    },
+)
+
+register_push_routes(
+    app,
+    {
+        'log': log,
+        'external_api_error': _external_api_error,
+        'vapid_public_key': VAPID_PUBLIC_KEY,
+        'vapid_private_key_pem': VAPID_PRIVATE_KEY_PEM,
+        'vapid_email': VAPID_EMAIL,
+    },
+)
+
+register_watchlist_routes(
+    app,
+    {
+        'log': log,
+    },
+)
+
+register_station_routes(
+    app,
+    {
+        'log': log,
+        're_module': re_module,
+        'get_scorer': lambda: scorer,
+    },
+)
+
+register_log_routes(
+    app,
+    {
+        'log': log,
+        'get_scorer': lambda: scorer,
+        'lock': lock,
+        'get_spot_history': lambda: spot_history,
+        'get_band_counts': lambda: band_counts,
+        'get_total_spots': lambda: total_spots,
+        'solar_data_getter': lambda: SOLAR_DATA,
+        'get_dxcc_cn': get_dxcc_cn,
+    },
+)
+
+register_score_routes(
+    app,
+    {
+        'log': log,
+        'get_scorer': lambda: scorer,
+        'init_scorer': init_scorer,
+        'lock': lock,
+        'get_spot_history': lambda: spot_history,
+        'get_band_counts': lambda: band_counts,
+        'get_total_spots': lambda: total_spots,
+        'get_solar_data': lambda: SOLAR_DATA,
+        'get_dxcc_cn': get_dxcc_cn,
+        'get_logs_dir': lambda: Path(__file__).parent / 'logs',
+    },
+)
 
 # ========== 路由 ==========
 @app.route('/')
@@ -215,146 +306,6 @@ def api_history():
             'band_counts': dict(band_counts)
         })
 
-# ========== 关注列表 API ===========
-WATCHLIST_FILE = Path(__file__).parent / 'settings' / 'watchlists.json'
-
-def load_watchlist():
-    """加载关注列表"""
-    if not WATCHLIST_FILE.exists():
-        return []
-    try:
-        with open(WATCHLIST_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return []
-
-def save_watchlist(items):
-    """保存关注列表"""
-    WATCHLIST_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(WATCHLIST_FILE, 'w', encoding='utf-8') as f:
-        json.dump(items, f, ensure_ascii=False, indent=2)
-
-@app.route('/api/user/watchlist', methods=['GET', 'POST'])
-def api_watchlist():
-    """获取或添加关注列表项"""
-    if request.method == 'GET':
-        return jsonify({'success': True, 'items': load_watchlist()})
-
-    elif request.method == 'POST':
-        try:
-            data = request.json
-            if not data or not data.get('target_value'):
-                return jsonify({'error': 'target_value is required'}), 400
-
-            target_type = data.get('target_type', 'callsign')
-            valid_types = ['dxcc', 'prefix', 'callsign', 'band', 'mode']
-            if target_type not in valid_types:
-                return jsonify({'error': f'Invalid target_type. Must be: {valid_types}'}), 400
-
-            items = load_watchlist()
-
-            # 检查重复
-            for item in items:
-                if item['target_type'] == target_type and item['target_value'].upper() == data['target_value'].upper():
-                    return jsonify({'error': '该关注项已存在'}), 409
-
-            new_item = {
-                'id': str(int(time.time() * 1000)),
-                'target_type': target_type,
-                'target_value': data['target_value'].upper().strip(),
-                'band_preference': data.get('band_preference', ''),
-                'mode_preference': data.get('mode_preference', ''),
-                'enabled': True,
-                'created_at': datetime.now(timezone.utc).isoformat()
-            }
-            items.append(new_item)
-            save_watchlist(items)
-            log(f'[关注列表] 添加: {target_type}={new_item["target_value"]}')
-            return jsonify({'success': True, 'item': new_item})
-
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-
-@app.route('/api/user/watchlist/<item_id>', methods=['PUT', 'DELETE'])
-def api_watchlist_item(item_id):
-    """更新或删除关注列表项"""
-    items = load_watchlist()
-    item = next((i for i in items if i['id'] == item_id), None)
-    if not item:
-        return jsonify({'error': 'Item not found'}), 404
-
-    if request.method == 'PUT':
-        try:
-            data = request.json
-            if data.get('target_type'):
-                valid_types = ['dxcc', 'prefix', 'callsign', 'band', 'mode']
-                if data['target_type'] not in valid_types:
-                    return jsonify({'error': 'Invalid target_type'}), 400
-                item['target_type'] = data['target_type']
-            if data.get('target_value'):
-                item['target_value'] = data['target_value'].upper().strip()
-            if 'band_preference' in data:
-                item['band_preference'] = data['band_preference']
-            if 'mode_preference' in data:
-                item['mode_preference'] = data['mode_preference']
-            if 'enabled' in data:
-                item['enabled'] = bool(data['enabled'])
-
-            save_watchlist(items)
-            log(f'[关注列表] 更新: {item["target_type"]}={item["target_value"]}')
-            return jsonify({'success': True, 'item': item})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-
-    elif request.method == 'DELETE':
-        items = [i for i in items if i['id'] != item_id]
-        save_watchlist(items)
-        log(f'[关注列表] 删除: {item_id}')
-        return jsonify({'success': True})
-
-@app.route('/api/user/watchlist/import', methods=['POST'])
-def api_watchlist_import():
-    """批量导入关注列表"""
-    try:
-        data = request.json
-        if not data or not isinstance(data.get('items', []), list):
-            return jsonify({'error': 'items must be a list'}), 400
-
-        items = load_watchlist()
-        existing_keys = {(i['target_type'], i['target_value']) for i in items}
-        imported = 0
-        skipped = 0
-
-        for entry in data['items']:
-            target_type = entry.get('target_type', 'callsign')
-            target_value = entry.get('target_value', '').upper().strip()
-            if not target_value:
-                skipped += 1
-                continue
-
-            key = (target_type, target_value)
-            if key in existing_keys:
-                skipped += 1
-                continue
-
-            items.append({
-                'id': str(int(time.time() * 1000)) + str(imported),
-                'target_type': target_type,
-                'target_value': target_value,
-                'band_preference': entry.get('band_preference', ''),
-                'mode_preference': entry.get('mode_preference', ''),
-                'enabled': True,
-                'created_at': datetime.now(timezone.utc).isoformat()
-            })
-            existing_keys.add(key)
-            imported += 1
-
-        save_watchlist(items)
-        log(f'[关注列表] 导入: {imported}条新增, {skipped}条跳过')
-        return jsonify({'success': True, 'imported': imported, 'skipped': skipped})
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 # =========== 预警 API（V2增强版）===========
 @app.route('/api/user/alerts', methods=['GET'])
@@ -424,579 +375,6 @@ def api_solar_data():
     """获取太阳数据"""
     solar = update_solar_data()
     return jsonify({'success': True, 'data': solar})
-
-# =========== 日志文件上传 API ===========
-LOGS_DIR = Path(__file__).parent / 'logs'
-LOGS_DIR.mkdir(exist_ok=True)
-
-@app.route('/api/user/logs/upload', methods=['POST'])
-def api_upload_log():
-    """上传日志文件（支持 ADIF / CSV）"""
-    if 'file' not in request.files:
-        return jsonify({'error': '请选择文件'}), 400
-    
-    file = request.files['file']
-    if not file.filename:
-        return jsonify({'error': '文件名为空'}), 400
-    
-    # 判断文件类型
-    filename = file.filename.lower()
-    if filename.endswith('.adif'):
-        parser = ADIFParser()
-    elif filename.endswith('.csv'):
-        parser = CSVParser()
-    else:
-        return jsonify({'error': '不支持的文件格式，请上传 .adif 或 .csv 文件'}), 400
-    
-    # 保存文件
-    file_path = LOGS_DIR / filename
-    file.save(str(file_path))
-    log(f'[日志上传] {filename}')
-    
-    # 解析文件
-    try:
-        records, errors = parser.parse_file(str(file_path))
-    except Exception as e:
-        return jsonify({'error': f'解析失败: {str(e)}'}), 500
-    
-    # 计算 DXCC 统计
-    from dxcc_stats import DXCCStats
-    dxcc_stats = DXCCStats()
-    stats_result = dxcc_stats.analyze_records(records)
-    
-    # 保存日志记录
-    log_record = {
-        'id': str(int(time.time() * 1000)),
-        'filename': filename,
-        'uploaded_at': datetime.now(timezone.utc).isoformat(),
-        'record_count': len(records),
-        'error_count': len(errors),
-        'dxcc_stats': stats_result,
-        'errors': errors[:10]  # 只保存前10个错误
-    }
-    
-    # 保存日志记录列表
-    logs_file = LOGS_DIR / 'logs.json'
-    try:
-        with open(logs_file, 'r', encoding='utf-8') as f:
-            logs = json.load(f)
-    except Exception:
-        logs = []
-    
-    logs.append(log_record)
-    
-    # 限制日志文件大小（保留最近50个）
-    if len(logs) > 50:
-        logs = logs[-50:]
-    
-    with open(logs_file, 'w', encoding='utf-8') as f:
-        json.dump(logs, f, ensure_ascii=False, indent=2)
-    
-    log(f'[日志上传] 解析完成: {len(records)} 条记录, {stats_result["worked_dxcc_count"]} 个 DXCC')
-    
-    return jsonify({
-        'success': True,
-        'log_id': log_record['id'],
-        'stats': stats_result,
-        'errors': errors[:10]
-    })
-
-@app.route('/api/user/logs', methods=['GET'])
-def api_user_logs():
-    """获取用户日志列表"""
-    logs_file = LOGS_DIR / 'logs.json'
-    try:
-        with open(logs_file, 'r', encoding='utf-8') as f:
-            logs = json.load(f)
-    except Exception:
-        logs = []
-    
-    # 按上传时间倒序排列
-    logs.sort(key=lambda x: x.get('uploaded_at', ''), reverse=True)
-    
-    return jsonify({'success': True, 'logs': logs})
-
-@app.route('/api/user/logs/<log_id>', methods=['DELETE'])
-def api_delete_log(log_id):
-    """删除日志记录"""
-    logs_file = LOGS_DIR / 'logs.json'
-    try:
-        with open(logs_file, 'r', encoding='utf-8') as f:
-            logs = json.load(f)
-    except Exception:
-        return jsonify({'error': '日志文件不存在'}), 404
-    
-    # 找到并删除日志
-    logs = [log for log in logs if log.get('id') != log_id]
-    
-    with open(logs_file, 'w', encoding='utf-8') as f:
-        json.dump(logs, f, ensure_ascii=False, indent=2)
-    
-    log(f'[日志删除] {log_id}')
-    return jsonify({'success': True})
-
-# =========== 机会评分 API ===========
-@app.route('/api/score/spot', methods=['POST'])
-def api_score_spot():
-    """为单个 Spot 计算机会评分"""
-    try:
-        if scorer is None:
-            init_scorer()
-        
-        spot_data = request.json
-        spot = spot_data.get('spot', {})
-        band_counts = spot_data.get('band_counts', {})
-        total_spots = spot_data.get('total_spots', 0)
-        solar_data = spot_data.get('solar_data', {})
-        
-        score_result = scorer.score(
-            spot, band_counts, total_spots, solar_data,
-            spot_data.get('dxcc_count', 0)
-        )
-        
-        return jsonify({'success': True, 'score': score_result})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/score/missing', methods=['GET'])
-def api_score_missing_dxcc():
-    """为所有缺失的 DXCC 计算机会评分（基于当前位置实时 Spot）"""
-    try:
-        # 加载日志获取缺失 DXCC
-        logs_file = LOGS_DIR / 'logs.json'
-        try:
-            with open(logs_file, 'r', encoding='utf-8') as f:
-                logs = json.load(f)
-        except Exception:
-            return jsonify({'error': '未找到日志数据'}), 404
-        
-        # 合并所有缺失 DXCC
-        missing_dxcc = set()
-        for log_entry in logs:
-            stats = log_entry.get('dxcc_stats', {})
-            missing_list = stats.get('missing_dxcc_list', [])
-            missing_dxcc.update(missing_list)
-        
-        if not missing_dxcc:
-            return jsonify({'success': True, 'scores': []})
-        
-        # 获取当前统计数据
-        with lock:
-            bc = dict(band_counts)
-            ts = total_spots
-        
-        solar = update_solar_data()
-        
-        # 为每个缺失 DXCC 计算评分
-        from dxcc_stats import DXCCStats
-        dxcc_stats_instance = DXCCStats()
-        
-        results = []
-        for dxcc in sorted(missing_dxcc)[:20]:  # 限制返回前20个
-            # 查找该 DXCC 对应的最近 Spot
-            recent_spots = [
-                s for s in spot_history[-500:]  # 最近500条
-                if s.get('dxcc') == dxcc
-            ]
-            
-            if recent_spots:
-                # 使用最近 Spot 计算评分
-                spot = recent_spots[-1]
-                dxcc_count = len(recent_spots)
-                score_result = scorer.score(spot, bc, ts, solar, dxcc_count)
-                results.append({
-                    'dxcc': dxcc,
-                    'dxcc_cn': get_dxcc_cn(dxcc),
-                    'score': score_result,
-                    'recommendation_score': score_result['total'],
-                    'spot': spot
-                })
-        
-        # 按评分排序
-        results.sort(key=lambda x: x['score']['total'], reverse=True)
-        
-        return jsonify({'success': True, 'scores': results})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/score/top', methods=['GET'])
-def api_score_top():
-    """获取当前实时评分最高的 Spot 推荐列表"""
-    try:
-        if scorer is None:
-            init_scorer()
-        
-        limit = request.args.get('limit', 15, type=int)
-        min_score = request.args.get('min_score', 50, type=int)
-        
-        with lock:
-            bc = dict(band_counts)
-            ts = total_spots
-        
-        solar = SOLAR_DATA if SOLAR_DATA else {}
-        
-        results = []
-        seen_callsigns = set()
-        
-        # 遍历最近的 Spot 历史
-        for spot in reversed(spot_history[-300:]):
-            callsign = spot.get('callsign', '')
-            if not callsign or callsign in seen_callsigns:
-                continue
-            
-            # 跳过坐标未知的
-            if spot.get('lat', 0) == 0 and spot.get('lon', 0) == 0:
-                continue
-            
-            dxcc = spot.get('dxcc', '')
-            dxcc_count = len([s for s in spot_history[-200:] if s.get('dxcc') == dxcc]) if dxcc else 0
-            
-            try:
-                score_result = scorer.score(spot, bc, ts, solar, dxcc_count)
-            except Exception:
-                continue
-            
-            if score_result['total'] >= min_score:
-                results.append({
-                    'callsign': callsign,
-                    'dxcc': spot.get('dxcc', ''),
-                    'dxcc_cn': get_dxcc_cn(spot.get('dxcc', '')),
-                    'band': spot.get('band', ''),
-                    'mode': spot.get('mode', ''),
-                    'freq': spot.get('freq', 0),
-                    'lat': spot.get('lat', 0),
-                    'lon': spot.get('lon', 0),
-                    'grid': spot.get('grid', ''),
-                    'score': score_result['total'],
-                    'recommendation': score_result['recommendation'],
-                    'factors': score_result['factors'],
-                    'time': spot.get('time', ''),
-                })
-                seen_callsigns.add(callsign)
-            
-            if len(results) >= limit:
-                break
-        
-        results.sort(key=lambda x: x['score'], reverse=True)
-        return jsonify({'success': True, 'top': results})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/score/validate', methods=['GET'])
-def api_score_validate():
-    """验证历史评分准确性：对比已上传日志和评分历史"""
-    try:
-        from score_validator import ScoreValidator
-        validator = ScoreValidator(LOGS_DIR)
-
-        # 加载所有已上传日志，获取已通联呼号
-        worked_callsigns = validator.get_all_worked_callsigns()
-        worked_dxcc = validator.get_worked_dxcc()
-
-        if not worked_callsigns:
-            return jsonify({
-                'success': True,
-                'message': '尚未上传日志，无法验证',
-                'validation': None
-            })
-
-        # 获取 spot 历史中已评分的数据
-        scored_spots = []
-        for spot in spot_history[-500:]:
-            callsign = spot.get('callsign', '').upper()
-            score = spot.get('score_total', spot.get('score', 0))
-            if callsign and score > 0:
-                scored_spots.append({
-                    'callsign': callsign,
-                    'dxcc': spot.get('dxcc', ''),
-                    'dxcc_cn': get_dxcc_cn(spot.get('dxcc', '')),
-                    'band': spot.get('band', ''),
-                    'score': score,
-                })
-
-        if not scored_spots:
-            return jsonify({
-                'success': True,
-                'message': '尚无评分数据',
-                'validation': None,
-                'worked_dxcc_count': len(worked_dxcc)
-            })
-
-        # 执行验证
-        result = validator.validate_prediction(scored_spots, worked_callsigns)
-        result['worked_callsigns_count'] = len(worked_callsigns)
-        result['worked_dxcc_count'] = len(worked_dxcc)
-
-        # 计算每个分数段的命中率
-        for bucket, data in result['score_distribution'].items():
-            t = data['total']
-            data['rate'] = round(data['worked'] / t * 100, 1) if t > 0 else 0
-
-        log(f'[评分验证] 准确率:{result["accuracy"]}% 精确率:{result["precision"]}% 召回率:{result["recall"]}%')
-
-        return jsonify({'success': True, 'validation': result})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# =========== 用户台站配置 API ===========
-STATION_FILE = Path(__file__).parent / 'settings' / 'stations.json'
-
-def load_station_config():
-    """加载台站配置"""
-    if not STATION_FILE.exists():
-        # 返回默认配置
-        return {
-            'callsign': 'BG2ENW',
-            'grid': 'PN35HS',
-            'lat': 45.8,
-            'lon': 126.5,
-            'power': 100,
-            'antenna': '3 Element Yagi',
-            'updated_at': None
-        }
-    with open(STATION_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-def save_station_config(config):
-    """保存台站配置"""
-    config['updated_at'] = datetime.now(timezone.utc).isoformat()
-    with open(STATION_FILE, 'w', encoding='utf-8') as f:
-        json.dump(config, f, ensure_ascii=False, indent=2)
-    return config
-
-@app.route('/api/user/station', methods=['GET', 'PUT'])
-def api_user_station():
-    """获取或更新台站配置"""
-    if request.method == 'GET':
-        return jsonify(load_station_config())
-    
-    elif request.method == 'PUT':
-        try:
-            config = request.json
-            required = ['callsign', 'grid', 'lat', 'lon']
-            for field in required:
-                if field not in config:
-                    return jsonify({'error': f'Missing required field: {field}'}), 400
-            
-            # 验证呼号格式
-            callsign = config['callsign'].upper().strip()
-            if not re_module.match(r'^[A-Z0-9/]{3,10}$', callsign):
-                return jsonify({'error': 'Invalid callsign format'}), 400
-            
-            # 验证 Grid（可选，但如果提供需要有效）
-            if config['grid']:
-                grid = config['grid'].upper().strip()
-                if not re_module.match(r'^[A-Z]{2}[0-9]{2}[A-Z]{0,2}[0-9]{0,2}$', grid):
-                    return jsonify({'error': 'Invalid grid format'}), 400
-                config['grid'] = grid
-            
-            config['callsign'] = callsign
-            config['lat'] = float(config['lat'])
-            config['lon'] = float(config['lon'])
-            config['power'] = int(config.get('power', 100))
-            config['antenna'] = config.get('antenna', '')
-            
-            saved = save_station_config(config)
-            log(f'[台站配置更新] {config["callsign"]} / {config["grid"]} / {config["power"]}W')
-            
-            # 同时更新评分器
-            scorer.update_station(
-                config['lat'],
-                config['lon'],
-                ['FT8', 'CW', 'SSB']  # 默认支持的模式，后续可配置
-            )
-            
-            return jsonify({'success': True, 'config': saved})
-        except Exception as e:
-            log(f'[台站配置保存失败] {e}')
-            return jsonify({'error': str(e)}), 500
-
-@app.route('/api/wavelog_station')
-def api_wavelog_station():
-    """从 Wavelog 获取台站配置信息"""
-    try:
-        import urllib.request
-        import json
-        
-        url = f'{WAVELOG_URL}/index.php/api/station_info'
-        payload = json.dumps({'key': WAVELOG_API_KEY}).encode('utf-8')
-        req = urllib.request.Request(url, data=payload, method='POST')
-        req.add_header('Content-Type', 'application/json')
-        req.add_header('Accept', 'application/json')
-        
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            if resp.status == 200:
-                data = json.loads(resp.read().decode('utf-8'))
-                # 查找 active station
-                if isinstance(data, list):
-                    active = next((s for s in data if s.get('station_active') == '1' or s.get('station_active') == 1), data[0] if data else None)
-                    if active:
-                        return jsonify({
-                            'callsign': active.get('station_callsign', MY_CALL),
-                            'grid': active.get('station_gridsquare', ''),
-                            'location': active.get('station_city', ''),
-                            'station_profile_name': active.get('station_profile_name', '')
-                        })
-        return jsonify({
-            'callsign': MY_CALL,
-            'grid': 'PN35HS',
-            'location': 'Unknown'
-        })
-    except Exception as e:
-        log(f'[Wavelog] 获取台站信息失败: {e}')
-
-@app.route('/api/wavelog_stats')
-def api_wavelog_stats():
-    """从 Wavelog 获取 QSO 统计"""
-    try:
-        import urllib.request
-        import json as _json
-        
-        url = f'{WAVELOG_URL}/index.php/api/statistics/cl{WAVELOG_API_KEY}'
-        req = urllib.request.Request(url, method='GET')
-        req.add_header('Accept', 'application/json')
-        
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            if resp.status == 200:
-                data = _json.loads(resp.read().decode('utf-8'))
-                return jsonify({'ok': True, 'data': data})
-        return jsonify({'ok': False})
-    except Exception as e:
-        log(f'[Wavelog] 获取统计失败: {e}')
-        return jsonify({'ok': False, 'error': str(e)})
-
-@app.route('/api/wavelog_lookup/<callsign>')
-def api_wavelog_lookup(callsign):
-    """查询呼号是否已在 Wavelog 中通联过"""
-    try:
-        import urllib.request
-        import json as _json
-        
-        url = f'{WAVELOG_URL}/index.php/api/private_lookup'
-        payload = _json.dumps({'key': WAVELOG_API_KEY, 'callsign': callsign.upper()}).encode('utf-8')
-        req = urllib.request.Request(url, data=payload, method='POST')
-        req.add_header('Content-Type', 'application/json')
-        req.add_header('Accept', 'application/json')
-        
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            if resp.status == 200:
-                data = _json.loads(resp.read().decode('utf-8'))
-                return jsonify({'ok': True, 'callsign': callsign.upper(), 'worked': bool(data)})
-        return jsonify({'ok': False, 'callsign': callsign.upper(), 'worked': False})
-    except Exception as e:
-        return jsonify({'ok': False, 'callsign': callsign.upper(), 'worked': False, 'error': str(e)})
-
-
-# =========== Web Push 推送 API ===========
-VAPID_CONFIG_FILE = Path(__file__).parent / 'settings' / 'vapid.json'
-PUSH_SUBS_FILE = Path(__file__).parent / 'settings' / 'push_subscriptions.json'
-
-def load_vapid_config():
-    if not VAPID_CONFIG_FILE.exists():
-        return None
-    with open(VAPID_CONFIG_FILE, 'r') as f:
-        return json.load(f)
-
-def load_push_subs():
-    if not PUSH_SUBS_FILE.exists():
-        return []
-    try:
-        with open(PUSH_SUBS_FILE, 'r') as f:
-            return json.load(f)
-    except Exception:
-        return []
-
-def save_push_subs(subs):
-    PUSH_SUBS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(PUSH_SUBS_FILE, 'w') as f:
-        json.dump(subs, f, indent=2)
-
-def send_push_notification(title, body, tag='dx-alert'):
-    vapid = load_vapid_config()
-    if not vapid:
-        return False
-    subs = load_push_subs()
-    if not subs:
-        return False
-    from pywebpush import webpush, WebPushException
-    sent = 0
-    failed = 0
-    for sub in subs:
-        try:
-            webpush(
-                subscription_info=sub,
-                data=json.dumps({
-                    'title': title,
-                    'body': body,
-                    'tag': tag,
-                    'icon': '/images/icon-192.png'
-                }),
-                vapid_private_key=vapid['vapid_private_key_pem'],
-                vapid_claims={'sub': f'mailto:{vapid["vapid_email"]}'}
-            )
-            sent += 1
-        except WebPushException as e:
-            log(f'[WebPush] 推送失败: {e}')
-            if e.response and e.response.status_code in [404, 410]:
-                subs.remove(sub)
-                save_push_subs(subs)
-            failed += 1
-        except Exception as e:
-            log(f'[WebPush] 异常: {e}')
-            failed += 1
-    if sent > 0:
-        log(f'[WebPush] 推送成功: {title} → {sent}个设备')
-    return sent > 0
-
-@app.route('/api/push/public_key', methods=['GET'])
-def api_push_public_key():
-    vapid = load_vapid_config()
-    if not vapid:
-        return jsonify({'error': 'VAPID 未配置'}), 500
-    return jsonify({'public_key': vapid['vapid_public_key']})
-
-@app.route('/api/push/subscribe', methods=['POST'])
-def api_push_subscribe():
-    try:
-        sub = request.json
-        if not sub or 'endpoint' not in sub:
-            return jsonify({'error': '无效订阅数据'}), 400
-        subs = load_push_subs()
-        subs = [s for s in subs if s.get('endpoint') != sub.get('endpoint')]
-        subs.append(sub)
-        save_push_subs(subs)
-        log(f'[WebPush] 新订阅: {sub.get("endpoint", "?")[:50]}')
-        return jsonify({'success': True, 'total': len(subs)})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/push/unsubscribe', methods=['POST'])
-def api_push_unsubscribe():
-    try:
-        endpoint = request.json.get('endpoint', '')
-        if not endpoint:
-            return jsonify({'error': '无效'}), 400
-        subs = load_push_subs()
-        subs = [s for s in subs if s.get('endpoint') != endpoint]
-        save_push_subs(subs)
-        return jsonify({'success': True, 'total': len(subs)})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/push/test', methods=['POST'])
-def api_push_test():
-    send_push_notification('🔔 DX Guardian 测试', 'Web Push 推送功能正常！')
-    return jsonify({'success': True})
-
-@app.route('/api/push/status', methods=['GET'])
-def api_push_status():
-    vapid = load_vapid_config()
-    subs = load_push_subs()
-    return jsonify({
-        'enabled': bool(vapid),
-        'subscribers': len(subs),
-        'public_key': vapid['vapid_public_key'][:20] + '...' if vapid else None
-    })
 
 # ========== WebSocket ==========
 @socketio.on('connect')
@@ -1651,5 +1029,3 @@ if __name__ == '__main__':
 
     # 启动 Flask-SocketIO 服务器
     socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
-
-

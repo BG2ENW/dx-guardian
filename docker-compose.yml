@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  dx-guardian:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dx-guardian
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      # Flask runtime
+      - FLASK_ENV=production
+      - DEBUG=false
+      
+      # Application secret (REQUIRED - generate with: python -c "import secrets; print(secrets.token_hex(32))")
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      
+      # SocketIO CORS (set to your domain in production)
+      - SOCKETIO_CORS_ALLOWED_ORIGINS=${SOCKETIO_CORS_ALLOWED_ORIGINS:-*}
+      
+      # Wavelog integration (REQUIRED for Wavelog features)
+      - WAVELOG_URL=${WAVELOG_URL:-}
+      - WAVELOG_API_KEY=${WAVELOG_API_KEY:-}
+      
+      # ClubLog callbook (REQUIRED for callbook lookup)
+      - CLUBLOG_APP_PASSWORD=${CLUBLOG_APP_PASSWORD:-}
+      
+      # QRZ lookup (REQUIRED for QRZ Grid lookup)
+      - QRZ_USERNAME=${QRZ_USERNAME:-}
+      - QRZ_PASSWORD=${QRZ_PASSWORD:-}
+      
+      # HamQTH lookup (REQUIRED for HamQTH Grid lookup)
+      - HAMQTH_USERNAME=${HAMQTH_USERNAME:-}
+      - HAMQTH_PASSWORD=${HAMQTH_PASSWORD:-}
+      
+      # Web Push VAPID (REQUIRED for push notifications)
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY_PEM=${VAPID_PRIVATE_KEY_PEM:-}
+      - VAPID_EMAIL=${VAPID_EMAIL:-}
+    volumes:
+      # Persist data directory
+      - dx-guardian-data:/app/backend/data
+      # Persist settings directory
+      - dx-guardian-settings:/app/backend/settings
+      # Persist logs directory
+      - dx-guardian-logs:/app/backend/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - dx-guardian-network
+
+volumes:
+  dx-guardian-data:
+    driver: local
+  dx-guardian-settings:
+    driver: local
+  dx-guardian-logs:
+    driver: local
+
+networks:
+  dx-guardian-network:
+    driver: bridge
