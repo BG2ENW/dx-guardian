@@ -1,0 +1,2598 @@
+{
+  "alerts": [
+    {
+      "id": "alert_1777614807097_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m CW 7.000MHz",
+      "spot": {
+        "callsign": "VK3PF",
+        "freq": 7.0,
+        "band": "40m",
+        "mode": "CW",
+        "spotter": "OH0M",
+        "grid": null,
+        "comment": "WWFF VKFF-4767",
+        "spot_time": "0553Z",
+        "timestamp": "2026-05-01T05:53:23.657679+00:00",
+        "raw": "DX de OH0M:       7000.0  VK3PF        WWFF VKFF-4767                 0553Z",
+        "lat": -38.3125,
+        "lon": 146.45833333333334,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777614807.097471,
+        "score": 72,
+        "score_total": 72,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (7/27 = 25.9%)"
+          },
+          "solar": {
+            "score": 4,
+            "max": 20,
+            "detail": "SFI 很低, K 扰动"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "9563 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (4 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "CW 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T05:53:27.097812+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777615779104_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.144MHz",
+      "spot": {
+        "callsign": "VK3OAK",
+        "freq": 7.144,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "VK5WU",
+        "grid": null,
+        "comment": "WWFF VKFF-4529",
+        "spot_time": "0609Z",
+        "timestamp": "2026-05-01T06:09:35.488675+00:00",
+        "raw": "DX de VK5WU:      7144.0  VK3OAK       WWFF VKFF-4529                 0609Z",
+        "lat": -24.6696,
+        "lon": 134.808,
+        "precision": "dxcc",
+        "dxcc": "Australia",
+        "_server_ts": 1777615779.1045363,
+        "score": 84,
+        "score_total": 84,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (36/135 = 26.7%)"
+          },
+          "solar": {
+            "score": 4,
+            "max": 20,
+            "detail": "SFI 很低, K 扰动"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "7881 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (12 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T06:09:39.104879+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777615871539_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.144MHz",
+      "spot": {
+        "callsign": "VK3PWF",
+        "freq": 7.144,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "VK5WU",
+        "grid": null,
+        "comment": "WWFF VKFF-4529",
+        "spot_time": "0611Z",
+        "timestamp": "2026-05-01T06:11:07.773827+00:00",
+        "raw": "DX de VK5WU:      7144.0  VK3PWF       WWFF VKFF-4529                 0611Z",
+        "lat": -24.2312,
+        "lon": 134.5496,
+        "precision": "dxcc",
+        "dxcc": "Australia",
+        "_server_ts": 1777615871.539159,
+        "score": 84,
+        "score_total": 84,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (38/145 = 26.2%)"
+          },
+          "solar": {
+            "score": 4,
+            "max": 20,
+            "detail": "SFI 很低, K 扰动"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "7830 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (14 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T06:11:11.539514+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777616475374_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.150MHz",
+      "spot": {
+        "callsign": "VK3PF",
+        "freq": 7.15,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "VK5WU",
+        "grid": null,
+        "comment": "SSB:",
+        "spot_time": "0621Z",
+        "timestamp": "2026-05-01T06:21:15.373877+00:00",
+        "raw": "DX de VK5WU:      7150.0  VK3PF        SSB:                           0621Z",
+        "lat": -38.3125,
+        "lon": 146.45833333333334,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777616475.3740134,
+        "score": 78,
+        "score_total": 78,
+        "score_factors": {
+          "band_activity": {
+            "score": 24,
+            "max": 25,
+            "detail": "40m 活跃 (51/206 = 24.8%)"
+          },
+          "solar": {
+            "score": 4,
+            "max": 20,
+            "detail": "SFI 很低, K 扰动"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "9563 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (17 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T06:21:15.374368+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777620753181_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 20m SSB 14.205MHz",
+      "spot": {
+        "callsign": "JA1QJE",
+        "freq": 14.205,
+        "band": "20m",
+        "mode": "SSB",
+        "spotter": "F6ARC",
+        "grid": null,
+        "comment": "solid LP",
+        "spot_time": "0732Z",
+        "timestamp": "2026-05-01T07:32:27.089479+00:00",
+        "raw": "DX de F6ARC:     14205.0  JA1QJE       solid LP                       0732Z",
+        "lat": 35.6875,
+        "lon": 139.79166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777620753.1812315,
+        "score": 75,
+        "score_total": 75,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "20m 活跃 (283/665 = 42.6%)"
+          },
+          "solar": {
+            "score": 10,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定"
+          },
+          "time_window": {
+            "score": 10,
+            "max": 15,
+            "detail": "F2 层部分可用"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1583 km → 20m 中距传播"
+          },
+          "spot_heat": {
+            "score": 5,
+            "max": 15,
+            "detail": "少量活跃 (1 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T07:32:33.181600+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777632466305_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m FT8 21.076MHz",
+      "spot": {
+        "callsign": "JA5SEY",
+        "freq": 21.0758,
+        "band": "15m",
+        "mode": "FT8",
+        "spotter": "EA3EDU",
+        "grid": "JN01",
+        "comment": "JN01<>PM63 FT8  Sent: -22  Rcv",
+        "spot_time": "1047Z",
+        "timestamp": "2026-05-01T10:47:46.305347+00:00",
+        "raw": "DX de EA3EDU:    21075.8  JA5SEY       JN01<>PM63 FT8  Sent: -22  Rcv 1047Z",
+        "lat": 41.5,
+        "lon": 1.0,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777632466.3055127,
+        "score": 49,
+        "score_total": 49,
+        "score_factors": {
+          "band_activity": {
+            "score": 4,
+            "max": 25,
+            "detail": "15m 活跃 (101/2297 = 4.4%)"
+          },
+          "solar": {
+            "score": 0,
+            "max": 20,
+            "detail": "SFI 很低, K 扰动, 15m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "白天 F2 层传播好"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "8907 km → 15m 远距传播"
+          },
+          "spot_heat": {
+            "score": 5,
+            "max": 15,
+            "detail": "少量活跃 (1 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-01T10:47:46.305855+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777633509514_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 17m FT8 18.100MHz",
+      "spot": {
+        "callsign": "JA1LSY",
+        "freq": 18.1,
+        "band": "17m",
+        "mode": "FT8",
+        "spotter": "EA4IDN",
+        "grid": null,
+        "comment": "FT8 CONTACT R-13  BEST REGARDS",
+        "spot_time": "1105Z",
+        "timestamp": "2026-05-01T11:05:04.250375+00:00",
+        "raw": "DX de EA4IDN:    18100.0  JA1LSY       FT8 CONTACT R-13  BEST REGARDS 1105Z",
+        "lat": 35.729166666666664,
+        "lon": 139.20833333333334,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777633509.5137198,
+        "score": 48,
+        "score_total": 48,
+        "score_factors": {
+          "band_activity": {
+            "score": 5,
+            "max": 25,
+            "detail": "17m 活跃 (141/2408 = 5.9%)"
+          },
+          "solar": {
+            "score": 0,
+            "max": 20,
+            "detail": "SFI 很低, K 扰动, 17m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "白天 F2 层传播好, 灰线时间加分"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "1545 km → 17m 远距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (4 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-01T11:05:09.514056+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777634299257_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 80m SSB 3.796MHz",
+      "spot": {
+        "callsign": "JA1DX",
+        "freq": 3.796,
+        "band": "80m",
+        "mode": "SSB",
+        "spotter": "HP3AK",
+        "grid": null,
+        "comment": "Weak band, heavy QRN",
+        "spot_time": "1118Z",
+        "timestamp": "2026-05-01T11:18:11.865223+00:00",
+        "raw": "DX de HP3AK:      3796.0  JA1DX        Weak band, heavy QRN           1118Z",
+        "lat": 36.6888,
+        "lon": 138.272,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777634299.25765,
+        "score": 50,
+        "score_total": 50,
+        "score_factors": {
+          "band_activity": {
+            "score": 1,
+            "max": 25,
+            "detail": "80m 活跃 (26/2489 = 1.0%)"
+          },
+          "solar": {
+            "score": 4,
+            "max": 20,
+            "detail": "SFI 很低, K 扰动"
+          },
+          "time_window": {
+            "score": 8,
+            "max": 15,
+            "detail": "白天低频吸收大, 灰线时间加分"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1410 km → 80m 短距传播"
+          },
+          "spot_heat": {
+            "score": 12,
+            "max": 15,
+            "detail": "活跃 (7 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟡 推荐"
+      },
+      "created_at": "2026-05-01T11:18:19.257991+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777635376735_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 20m FT8 14.074MHz",
+      "spot": {
+        "callsign": "JA0FVU",
+        "freq": 14.074,
+        "band": "20m",
+        "mode": "FT8",
+        "spotter": "RA1OK",
+        "grid": null,
+        "comment": "FT8 -8 dB 2724 Hz",
+        "spot_time": "1136Z",
+        "timestamp": "2026-05-01T11:36:12.225035+00:00",
+        "raw": "DX de RA1OK:     14074.0  JA0FVU       FT8 -8 dB 2724 Hz              1136Z",
+        "lat": 37.9375,
+        "lon": 139.04166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777635376.7351747,
+        "score": 81,
+        "score_total": 81,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "20m 活跃 (959/2589 = 37.0%)"
+          },
+          "solar": {
+            "score": 4,
+            "max": 20,
+            "detail": "SFI 很低, K 扰动"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "白天 F2 层传播好, 灰线时间加分"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1355 km → 20m 中距传播"
+          },
+          "spot_heat": {
+            "score": 12,
+            "max": 15,
+            "detail": "活跃 (6 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T11:36:16.735553+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777638089467_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 40m SSB 7.153MHz",
+      "spot": {
+        "callsign": "JA3CZY",
+        "freq": 7.153,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "JR3YEL",
+        "grid": null,
+        "comment": "CQDXNA",
+        "spot_time": "1221Z",
+        "timestamp": "2026-05-01T12:21:23.175226+00:00",
+        "raw": "DX de JR3YEL:     7153.0  JA3CZY       CQDXNA                         1221Z",
+        "lat": 34.6875,
+        "lon": 135.54166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777638089.4672792,
+        "score": 77,
+        "score_total": 77,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (837/2841 = 29.5%)"
+          },
+          "solar": {
+            "score": 4,
+            "max": 20,
+            "detail": "SFI 很低, K 扰动"
+          },
+          "time_window": {
+            "score": 8,
+            "max": 15,
+            "detail": "白天低频吸收大, 灰线时间加分"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1452 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (10 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T12:21:29.467664+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777643315151_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.147MHz",
+      "spot": {
+        "callsign": "VK4KWM",
+        "freq": 7.147,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "N7EKD",
+        "grid": null,
+        "comment": "Grt sig at sunrise 73",
+        "spot_time": "1348Z",
+        "timestamp": "2026-05-01T13:48:29.216533+00:00",
+        "raw": "DX de N7EKD:      7147.0  VK4KWM       Grt sig at sunrise 73          1348Z",
+        "lat": -35.270833333333336,
+        "lon": 149.125,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777643315.1511657,
+        "score": 68,
+        "score_total": 68,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (975/3345 = 29.1%)"
+          },
+          "solar": {
+            "score": 10,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定"
+          },
+          "time_window": {
+            "score": 8,
+            "max": 15,
+            "detail": "白天低频吸收大, 灰线时间加分"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "9296 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 5,
+            "max": 15,
+            "detail": "少量活跃 (2 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟡 推荐"
+      },
+      "created_at": "2026-05-01T13:48:35.151536+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777643973871_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.147MHz",
+      "spot": {
+        "callsign": "VK3KZ",
+        "freq": 7.147,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "N7EKD",
+        "grid": null,
+        "comment": "GD COPY AFTER SUN RISE 73",
+        "spot_time": "1359Z",
+        "timestamp": "2026-05-01T13:59:29.065259+00:00",
+        "raw": "DX de N7EKD:      7147.0  VK3KZ        GD COPY AFTER SUN RISE 73      1359Z",
+        "lat": -35.270833333333336,
+        "lon": 149.125,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777643973.8707848,
+        "score": 68,
+        "score_total": 68,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (994/3421 = 29.1%)"
+          },
+          "solar": {
+            "score": 10,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定"
+          },
+          "time_window": {
+            "score": 8,
+            "max": 15,
+            "detail": "白天低频吸收大, 灰线时间加分"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "9296 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 5,
+            "max": 15,
+            "detail": "少量活跃 (2 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟡 推荐"
+      },
+      "created_at": "2026-05-01T13:59:33.871126+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777645371254_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.147MHz",
+      "spot": {
+        "callsign": "VK4MSA",
+        "freq": 7.147,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "N7EKD",
+        "grid": null,
+        "comment": "GD SIGNAL AFTER SUNRISE tnx",
+        "spot_time": "1422Z",
+        "timestamp": "2026-05-01T14:22:44.339736+00:00",
+        "raw": "DX de N7EKD:      7147.0  VK4MSA       GD SIGNAL AFTER SUNRISE tnx    1422Z",
+        "lat": -19.270833333333332,
+        "lon": 146.70833333333334,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777645371.25381,
+        "score": 73,
+        "score_total": 73,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (1036/3582 = 28.9%)"
+          },
+          "solar": {
+            "score": 10,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "白天低频吸收大"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "7517 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (4 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T14:22:51.254156+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777646515857_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.147MHz",
+      "spot": {
+        "callsign": "VK2TKU",
+        "freq": 7.147,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "N7EKD",
+        "grid": null,
+        "comment": "GD SIGNAL AFTER SUN RISE tnx",
+        "spot_time": "1441Z",
+        "timestamp": "2026-05-01T14:41:47.995000+00:00",
+        "raw": "DX de N7EKD:      7147.0  VK2TKU       GD SIGNAL AFTER SUN RISE tnx   1441Z",
+        "lat": -24.7256,
+        "lon": 134.264,
+        "precision": "dxcc",
+        "dxcc": "Australia",
+        "_server_ts": 1777646515.857588,
+        "score": 73,
+        "score_total": 73,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (1072/3719 = 28.8%)"
+          },
+          "solar": {
+            "score": 10,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "白天低频吸收大"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "7881 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (4 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T14:41:55.857730+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777656304726_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 40m FT8 7.074MHz",
+      "spot": {
+        "callsign": "JA6CNL",
+        "freq": 7.074,
+        "band": "40m",
+        "mode": "FT8",
+        "spotter": "UA3ARC",
+        "grid": null,
+        "comment": "FT8 -13 dB 381 Hz",
+        "spot_time": "1724Z",
+        "timestamp": "2026-05-01T17:24:59.810747+00:00",
+        "raw": "DX de UA3ARC:     7074.0  JA6CNL       FT8 -13 dB 381 Hz              1724Z",
+        "lat": 35.520833333333336,
+        "lon": 140.125,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777656304.7263985,
+        "score": 70,
+        "score_total": 70,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (1479/4942 = 29.9%)"
+          },
+          "solar": {
+            "score": 10,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "白天低频吸收大"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1617 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 5,
+            "max": 15,
+            "detail": "少量活跃 (2 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T17:25:04.726781+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777664248463_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 30m FT8 10.137MHz",
+      "spot": {
+        "callsign": "JA6TXU",
+        "freq": 10.137,
+        "band": "30m",
+        "mode": "FT8",
+        "spotter": "OK4KOP",
+        "grid": null,
+        "comment": "",
+        "spot_time": "1937Z",
+        "timestamp": "2026-05-01T19:37:24.990302+00:00",
+        "raw": "DX de OK4KOP:    10137.0  JA6TXU                                      1937Z",
+        "lat": 36.7824,
+        "lon": 138.5264,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777664248.4632106,
+        "score": 46,
+        "score_total": 46,
+        "score_factors": {
+          "band_activity": {
+            "score": 3,
+            "max": 25,
+            "detail": "30m 活跃 (195/5764 = 3.4%)"
+          },
+          "solar": {
+            "score": 8,
+            "max": 20,
+            "detail": "SFI 很低, K 稳定"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "30m 波段时间评估中性"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1417 km → 30m 中距传播"
+          },
+          "spot_heat": {
+            "score": 5,
+            "max": 15,
+            "detail": "少量活跃 (1 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-01T19:37:28.463596+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777671346927_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.136MHz",
+      "spot": {
+        "callsign": "VK4YT",
+        "freq": 7.136,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "OH0M",
+        "grid": null,
+        "comment": "WWFF VKFF-1556",
+        "spot_time": "2135Z",
+        "timestamp": "2026-05-01T21:35:43.641362+00:00",
+        "raw": "DX de OH0M:       7136.0  VK4YT        WWFF VKFF-1556                 2135Z",
+        "lat": -27.5625,
+        "lon": 152.29166666666666,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777671346.9271564,
+        "score": 78,
+        "score_total": 78,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (1831/6331 = 28.9%)"
+          },
+          "solar": {
+            "score": 6,
+            "max": 20,
+            "detail": "SFI 很低, K 轻微扰动"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好, 灰线时间加分"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "8563 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 12,
+            "max": 15,
+            "detail": "活跃 (6 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T21:35:46.927529+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777671861302_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 20m FT4 14.080MHz",
+      "spot": {
+        "callsign": "JA2HYD",
+        "freq": 14.08,
+        "band": "20m",
+        "mode": "FT4",
+        "spotter": "EB3WH",
+        "grid": null,
+        "comment": "FT4 -4 db 2157 Hz  Arigato !",
+        "spot_time": "2144Z",
+        "timestamp": "2026-05-01T21:44:17.927386+00:00",
+        "raw": "DX de EB3WH:     14080.0  JA2HYD       FT4 -4 db 2157 Hz  Arigato !   2144Z",
+        "lat": 35.395833333333336,
+        "lon": 139.54166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777671861.302027,
+        "score": 64,
+        "score_total": 64,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "20m 活跃 (2196/6361 = 34.5%)"
+          },
+          "solar": {
+            "score": 6,
+            "max": 20,
+            "detail": "SFI 很低, K 轻微扰动"
+          },
+          "time_window": {
+            "score": 8,
+            "max": 15,
+            "detail": "夜间高频关闭, 灰线时间加分"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1593 km → 20m 中距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (4 个 Spot)"
+          },
+          "mode_match": {
+            "score": 2,
+            "max": 10,
+            "detail": "FT4 不匹配 (支持: FT8,CW,SSB)"
+          }
+        },
+        "recommendation": "🟡 推荐"
+      },
+      "created_at": "2026-05-01T21:44:21.302401+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777675630646_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 20m FT8 14.076MHz",
+      "spot": {
+        "callsign": "JA9CZJ",
+        "freq": 14.0762,
+        "band": "20m",
+        "mode": "FT8",
+        "spotter": "EA3EDU",
+        "grid": "JN01",
+        "comment": "JN01<>PM86 FT8  Sent: -24  Rcv",
+        "spot_time": "2247Z",
+        "timestamp": "2026-05-01T22:47:10.645890+00:00",
+        "raw": "DX de EA3EDU:    14076.2  JA9CZJ       JN01<>PM86 FT8  Sent: -24  Rcv 2247Z",
+        "lat": 41.5,
+        "lon": 1.0,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777675630.6460218,
+        "score": 71,
+        "score_total": 71,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "20m 活跃 (2301/6578 = 35.0%)"
+          },
+          "solar": {
+            "score": 6,
+            "max": 20,
+            "detail": "SFI 很低, K 轻微扰动"
+          },
+          "time_window": {
+            "score": 8,
+            "max": 15,
+            "detail": "夜间高频关闭, 灰线时间加分"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "8907 km → 20m 中距传播"
+          },
+          "spot_heat": {
+            "score": 12,
+            "max": 15,
+            "detail": "活跃 (8 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T22:47:10.646393+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777675670488_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.144MHz",
+      "spot": {
+        "callsign": "VK4YT",
+        "freq": 7.144,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "OH0M",
+        "grid": null,
+        "comment": "WWFF VKFF-1556",
+        "spot_time": "2247Z",
+        "timestamp": "2026-05-01T22:47:50.488108+00:00",
+        "raw": "DX de OH0M:       7144.0  VK4YT        WWFF VKFF-1556                 2247Z",
+        "lat": -27.5625,
+        "lon": 152.29166666666666,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777675670.488253,
+        "score": 74,
+        "score_total": 74,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (1867/6579 = 28.4%)"
+          },
+          "solar": {
+            "score": 6,
+            "max": 20,
+            "detail": "SFI 很低, K 轻微扰动"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好, 灰线时间加分"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "8563 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (3 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-01T22:47:50.488684+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777676918801_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m FT8 21.075MHz",
+      "spot": {
+        "callsign": "JA6FUV",
+        "freq": 21.0752,
+        "band": "15m",
+        "mode": "FT8",
+        "spotter": "WB5XX",
+        "grid": null,
+        "comment": "",
+        "spot_time": "2308Z",
+        "timestamp": "2026-05-01T23:08:34.404698+00:00",
+        "raw": "DX de WB5XX:     21075.2  JA6FUV                                      2308Z",
+        "lat": 31.729166666666668,
+        "lon": 131.04166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777676918.8012555,
+        "score": 50,
+        "score_total": 50,
+        "score_factors": {
+          "band_activity": {
+            "score": 6,
+            "max": 25,
+            "detail": "15m 活跃 (429/6636 = 6.5%)"
+          },
+          "solar": {
+            "score": 1,
+            "max": 20,
+            "detail": "SFI 很低, K 轻微扰动, 15m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 8,
+            "max": 15,
+            "detail": "夜间高频关闭, 灰线时间加分"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "1613 km → 15m 远距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (11 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟡 推荐"
+      },
+      "created_at": "2026-05-01T23:08:38.801638+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777677369532_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m FT8 21.075MHz",
+      "spot": {
+        "callsign": "JA1NFM",
+        "freq": 21.0752,
+        "band": "15m",
+        "mode": "FT8",
+        "spotter": "WB5XX",
+        "grid": null,
+        "comment": "",
+        "spot_time": "2316Z",
+        "timestamp": "2026-05-01T23:16:03.368682+00:00",
+        "raw": "DX de WB5XX:     21075.2  JA1NFM                                      2316Z",
+        "lat": 35.6875,
+        "lon": 139.79166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777677369.531832,
+        "score": 50,
+        "score_total": 50,
+        "score_factors": {
+          "band_activity": {
+            "score": 6,
+            "max": 25,
+            "detail": "15m 活跃 (430/6661 = 6.5%)"
+          },
+          "solar": {
+            "score": 1,
+            "max": 20,
+            "detail": "SFI 很低, K 轻微扰动, 15m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 8,
+            "max": 15,
+            "detail": "夜间高频关闭, 灰线时间加分"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "1583 km → 15m 远距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (12 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟡 推荐"
+      },
+      "created_at": "2026-05-01T23:16:09.532194+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777678163237_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m FT8 21.075MHz",
+      "spot": {
+        "callsign": "JA0FVU",
+        "freq": 21.0752,
+        "band": "15m",
+        "mode": "FT8",
+        "spotter": "WB5XX",
+        "grid": null,
+        "comment": "",
+        "spot_time": "2329Z",
+        "timestamp": "2026-05-01T23:29:20.283103+00:00",
+        "raw": "DX de WB5XX:     21075.2  JA0FVU                                      2329Z",
+        "lat": 37.9375,
+        "lon": 139.04166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777678163.2367356,
+        "score": 43,
+        "score_total": 43,
+        "score_factors": {
+          "band_activity": {
+            "score": 6,
+            "max": 25,
+            "detail": "15m 活跃 (434/6695 = 6.5%)"
+          },
+          "solar": {
+            "score": 1,
+            "max": 20,
+            "detail": "SFI 很低, K 轻微扰动, 15m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 8,
+            "max": 15,
+            "detail": "夜间高频关闭, 灰线时间加分"
+          },
+          "distance": {
+            "score": 3,
+            "max": 15,
+            "detail": "1355 km → 15m 远距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (15 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-01T23:29:23.237096+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777683389471_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.144MHz",
+      "spot": {
+        "callsign": "VK1ACE",
+        "freq": 7.144,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "OH0M",
+        "grid": null,
+        "comment": "WWFF VKFF-3931",
+        "spot_time": "0056Z",
+        "timestamp": "2026-05-02T00:56:25.425102+00:00",
+        "raw": "DX de OH0M:       7144.0  VK1ACE       WWFF VKFF-3931                 0056Z",
+        "lat": -35.270833333333336,
+        "lon": 149.125,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777683389.4713519,
+        "score": 82,
+        "score_total": 82,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (1921/6909 = 27.8%)"
+          },
+          "solar": {
+            "score": 10,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好, 灰线时间加分"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "9296 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 12,
+            "max": 15,
+            "detail": "活跃 (8 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-02T00:56:29.471744+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777688313618_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 20m FT8 14.075MHz",
+      "spot": {
+        "callsign": "JA1OSJ",
+        "freq": 14.0745,
+        "band": "20m",
+        "mode": "FT8",
+        "spotter": "WS7O",
+        "grid": null,
+        "comment": "",
+        "spot_time": "0218Z",
+        "timestamp": "2026-05-02T02:18:29.537093+00:00",
+        "raw": "DX de WS7O:      14074.5  JA1OSJ                                      0218Z",
+        "lat": 36.5368,
+        "lon": 138.1608,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777688313.618337,
+        "score": 73,
+        "score_total": 73,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "20m 活跃 (2518/7049 = 35.7%)"
+          },
+          "solar": {
+            "score": 10,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1416 km → 20m 中距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (3 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-02T02:18:33.618738+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777690352616_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.144MHz",
+      "spot": {
+        "callsign": "VK4MGL",
+        "freq": 7.144,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "OH0M",
+        "grid": null,
+        "comment": "WWFF VKFF-4631",
+        "spot_time": "0252Z",
+        "timestamp": "2026-05-02T02:52:32.616228+00:00",
+        "raw": "DX de OH0M:       7144.0  VK4MGL       WWFF VKFF-4631                 0252Z",
+        "lat": -27.479166666666668,
+        "lon": 153.20833333333334,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777690352.6163702,
+        "score": 85,
+        "score_total": 85,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (1962/7092 = 27.7%)"
+          },
+          "solar": {
+            "score": 10,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "8583 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (12 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-02T02:52:32.616783+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777690855454_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.144MHz",
+      "spot": {
+        "callsign": "VK4MGL",
+        "freq": 7.144,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "VK2TLQ",
+        "grid": null,
+        "comment": "parks 4631 au4091 7527",
+        "spot_time": "0300Z",
+        "timestamp": "2026-05-02T03:00:55.454070+00:00",
+        "raw": "DX de VK2TLQ:     7144.0  VK4MGL       parks 4631 au4091 7527         0300Z",
+        "lat": -27.479166666666668,
+        "lon": 153.20833333333334,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777690855.4542065,
+        "score": 85,
+        "score_total": 85,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (1966/7103 = 27.7%)"
+          },
+          "solar": {
+            "score": 10,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "8583 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (13 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-02T03:00:55.454643+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777691177435_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 17m FT8 18.100MHz",
+      "spot": {
+        "callsign": "JA1LSY",
+        "freq": 18.1,
+        "band": "17m",
+        "mode": "FT8",
+        "spotter": "KI4GIP",
+        "grid": "EL29",
+        "comment": "FT8 -17dB EL29",
+        "spot_time": "0306Z",
+        "timestamp": "2026-05-02T03:06:17.434511+00:00",
+        "raw": "DX de KI4GIP:    18100.0  JA1LSY       FT8 -17dB EL29                 0306Z",
+        "lat": 29.5,
+        "lon": -95.0,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777691177.4346673,
+        "score": 49,
+        "score_total": 49,
+        "score_factors": {
+          "band_activity": {
+            "score": 6,
+            "max": 25,
+            "detail": "17m 活跃 (439/7113 = 6.2%)"
+          },
+          "solar": {
+            "score": 5,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定, 17m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "10655 km → 17m 远距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (3 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-02T03:06:17.435059+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777691867288_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 17m FT8 18.100MHz",
+      "spot": {
+        "callsign": "JA1OQJ",
+        "freq": 18.1,
+        "band": "17m",
+        "mode": "FT8",
+        "spotter": "KI4GIP",
+        "grid": "EL29",
+        "comment": "FT8 -13dB EL29",
+        "spot_time": "0317Z",
+        "timestamp": "2026-05-02T03:17:47.288330+00:00",
+        "raw": "DX de KI4GIP:    18100.0  JA1OQJ       FT8 -13dB EL29                 0317Z",
+        "lat": 29.5,
+        "lon": -95.0,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777691867.2885015,
+        "score": 49,
+        "score_total": 49,
+        "score_factors": {
+          "band_activity": {
+            "score": 6,
+            "max": 25,
+            "detail": "17m 活跃 (442/7155 = 6.2%)"
+          },
+          "solar": {
+            "score": 5,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定, 17m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "10655 km → 17m 远距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (4 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-02T03:17:47.288892+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777696149032_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m CW 21.026MHz",
+      "spot": {
+        "callsign": "JA1BJI",
+        "freq": 21.0255,
+        "band": "15m",
+        "mode": "CW",
+        "spotter": "BA3AX",
+        "grid": null,
+        "comment": "CW",
+        "spot_time": "0429Z",
+        "timestamp": "2026-05-02T04:29:02.867224+00:00",
+        "raw": "DX de BA3AX:     21025.5  JA1BJI       CW                             0429Z",
+        "lat": 35.520833333333336,
+        "lon": 139.54166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777696149.0320907,
+        "score": 46,
+        "score_total": 46,
+        "score_factors": {
+          "band_activity": {
+            "score": 6,
+            "max": 25,
+            "detail": "15m 活跃 (474/7442 = 6.4%)"
+          },
+          "solar": {
+            "score": 3,
+            "max": 20,
+            "detail": "SFI 很低, K 稳定, 15m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "1582 km → 15m 远距传播"
+          },
+          "spot_heat": {
+            "score": 12,
+            "max": 15,
+            "detail": "活跃 (5 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "CW 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-02T04:29:09.032494+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777696254250_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 6m FT8 50.313MHz",
+      "spot": {
+        "callsign": "JA3OHC",
+        "freq": 50.313,
+        "band": "6m",
+        "mode": "FT8",
+        "spotter": "VK6KXW",
+        "grid": null,
+        "comment": "r-14",
+        "spot_time": "0430Z",
+        "timestamp": "2026-05-02T04:30:50.392994+00:00",
+        "raw": "DX de VK6KXW:    50313.0  JA3OHC       r-14                           0430Z",
+        "lat": 36.3936,
+        "lon": 138.8992,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777696254.2497678,
+        "score": 45,
+        "score_total": 45,
+        "score_factors": {
+          "band_activity": {
+            "score": 3,
+            "max": 25,
+            "detail": "6m 活跃 (259/7450 = 3.5%)"
+          },
+          "solar": {
+            "score": 8,
+            "max": 20,
+            "detail": "SFI 很低, K 稳定"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "6m 波段时间评估中性"
+          },
+          "distance": {
+            "score": 7,
+            "max": 15,
+            "detail": "1471 km → 6m 距离中性"
+          },
+          "spot_heat": {
+            "score": 12,
+            "max": 15,
+            "detail": "活跃 (5 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-02T04:30:54.250148+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777698446959_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m SSB 21.028MHz",
+      "spot": {
+        "callsign": "JA1BJI",
+        "freq": 21.0281,
+        "band": "15m",
+        "mode": "SSB",
+        "spotter": "R8XF",
+        "grid": null,
+        "comment": "RCC TEST",
+        "spot_time": "0507Z",
+        "timestamp": "2026-05-02T05:07:26.959458+00:00",
+        "raw": "DX de R8XF:      21028.1  JA1BJI       RCC TEST                       0507Z",
+        "lat": 35.520833333333336,
+        "lon": 139.54166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777698446.9595954,
+        "score": 42,
+        "score_total": 42,
+        "score_factors": {
+          "band_activity": {
+            "score": 6,
+            "max": 25,
+            "detail": "15m 活跃 (489/7620 = 6.4%)"
+          },
+          "solar": {
+            "score": 3,
+            "max": 20,
+            "detail": "SFI 很低, K 稳定, 15m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "1582 km → 15m 远距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (4 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-02T05:07:26.959992+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777699415456_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m CW 21.028MHz",
+      "spot": {
+        "callsign": "JA1BJI",
+        "freq": 21.0284,
+        "band": "15m",
+        "mode": "CW",
+        "spotter": "RN3TT",
+        "grid": null,
+        "comment": "CW",
+        "spot_time": "0523Z",
+        "timestamp": "2026-05-02T05:23:35.455652+00:00",
+        "raw": "DX de RN3TT:     21028.4  JA1BJI       CW                             0523Z",
+        "lat": 35.520833333333336,
+        "lon": 139.54166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777699415.4557915,
+        "score": 42,
+        "score_total": 42,
+        "score_factors": {
+          "band_activity": {
+            "score": 6,
+            "max": 25,
+            "detail": "15m 活跃 (492/7702 = 6.4%)"
+          },
+          "solar": {
+            "score": 3,
+            "max": 20,
+            "detail": "SFI 很低, K 稳定, 15m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "1582 km → 15m 远距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (3 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "CW 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-02T05:23:35.456192+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777699445013_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.144MHz",
+      "spot": {
+        "callsign": "VK1GM",
+        "freq": 7.144,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "OH0M",
+        "grid": null,
+        "comment": "WWFF VKFF-0520",
+        "spot_time": "0523Z",
+        "timestamp": "2026-05-02T05:23:58.808318+00:00",
+        "raw": "DX de OH0M:       7144.0  VK1GM        WWFF VKFF-0520                 0523Z",
+        "lat": -35.270833333333336,
+        "lon": 149.125,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777699445.0127985,
+        "score": 83,
+        "score_total": 83,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (2189/7704 = 28.4%)"
+          },
+          "solar": {
+            "score": 8,
+            "max": 20,
+            "detail": "SFI 很低, K 稳定"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "9296 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (11 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "SSB 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-02T05:24:05.013177+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    },
+    {
+      "id": "alert_1777700042079_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m CW 21.028MHz",
+      "spot": {
+        "callsign": "JA1BJI",
+        "freq": 21.0284,
+        "band": "15m",
+        "mode": "CW",
+        "spotter": "UA4PN",
+        "grid": null,
+        "comment": "CW RCC CUP",
+        "spot_time": "0534Z",
+        "timestamp": "2026-05-02T05:34:02.078770+00:00",
+        "raw": "DX de UA4PN:     21028.4  JA1BJI       CW RCC CUP                     0534Z",
+        "lat": 35.520833333333336,
+        "lon": 139.54166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777700042.0789123,
+        "score": 42,
+        "score_total": 42,
+        "score_factors": {
+          "band_activity": {
+            "score": 6,
+            "max": 25,
+            "detail": "15m 活跃 (496/7758 = 6.4%)"
+          },
+          "solar": {
+            "score": 3,
+            "max": 20,
+            "detail": "SFI 很低, K 稳定, 15m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 10,
+            "max": 15,
+            "detail": "1582 km → 15m 远距传播"
+          },
+          "spot_heat": {
+            "score": 8,
+            "max": 15,
+            "detail": "中等活跃 (3 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "CW 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-02T05:34:02.079322+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777702406945_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m SSB 21.028MHz",
+      "spot": {
+        "callsign": "JA1BJI",
+        "freq": 21.0284,
+        "band": "15m",
+        "mode": "SSB",
+        "spotter": "RX7T",
+        "grid": null,
+        "comment": "",
+        "spot_time": "0613Z",
+        "timestamp": "2026-05-02T06:13:26.945560+00:00",
+        "raw": "DX de RX7T:      21028.4  JA1BJI                                      0613Z",
+        "lat": 35.520833333333336,
+        "lon": 139.54166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777702406.9456217
+      },
+      "created_at": "2026-05-02T06:13:26.945807+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777704218554_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 10m CW 28.017MHz",
+      "spot": {
+        "callsign": "JA1BJI",
+        "freq": 28.017,
+        "band": "10m",
+        "mode": "CW",
+        "spotter": "BA3AX",
+        "grid": null,
+        "comment": "CW",
+        "spot_time": "0643Z",
+        "timestamp": "2026-05-02T06:43:34.834930+00:00",
+        "raw": "DX de BA3AX:     28017.0  JA1BJI       CW                             0643Z",
+        "lat": 35.520833333333336,
+        "lon": 139.54166666666666,
+        "precision": "grid",
+        "dxcc": "Japan",
+        "_server_ts": 1777704218.5540478
+      },
+      "created_at": "2026-05-02T06:43:38.554406+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777704322389_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "VK",
+      "message": "前缀 VK (Australia) 出现在 40m SSB 7.138MHz",
+      "spot": {
+        "callsign": "VK4VN",
+        "freq": 7.138,
+        "band": "40m",
+        "mode": "SSB",
+        "spotter": "F5MUX",
+        "grid": null,
+        "comment": "Steve",
+        "spot_time": "0645Z",
+        "timestamp": "2026-05-02T06:45:16.099829+00:00",
+        "raw": "DX de F5MUX:      7138.0  VK4VN        Steve                          0645Z",
+        "lat": -27.4375,
+        "lon": 153.04166666666666,
+        "precision": "grid",
+        "dxcc": "Australia",
+        "_server_ts": 1777704322.3887076
+      },
+      "created_at": "2026-05-02T06:45:22.389086+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777436122051",
+        "target_type": "prefix",
+        "target_value": "VK",
+        "band_preference": "40m",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T04:15:22.051753+00:00"
+      }
+    }
+  ],
+  "updated_at": "2026-05-02T06:45:22.389347+00:00"
+}

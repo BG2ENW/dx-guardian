@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1777436105058",
+    "target_type": "callsign",
+    "target_value": "JA1AAA",
+    "band_preference": "20m",
+    "mode_preference": "FT8",
+    "enabled": true,
+    "created_at": "2026-04-29T04:15:05.058528+00:00"
+  },
+  {
+    "id": "1777436122051",
+    "target_type": "prefix",
+    "target_value": "VK",
+    "band_preference": "40m",
+    "mode_preference": "",
+    "enabled": true,
+    "created_at": "2026-04-29T04:15:22.051753+00:00"
+  },
+  {
+    "id": "1777446102529",
+    "target_type": "prefix",
+    "target_value": "JA",
+    "band_preference": "",
+    "mode_preference": "",
+    "enabled": true,
+    "created_at": "2026-04-29T07:01:42.529690+00:00"
+  }
+]
