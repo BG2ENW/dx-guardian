@@ -1,6 +1,6 @@
 """
 CTY.DAT 解析器 - ARRL 前缀数据库
-从 /workspace/data/cty.dat 解析呼号前缀 -> DXCC 实体映射
+从 /workspace/cty.dat 解析呼号前缀 -> DXCC 实体映射
 """
 import re
 from pathlib import Path
@@ -9,10 +9,18 @@ from typing import Dict, Optional
 class CTYData:
     """CTY.DAT 数据库解析器"""
     
-    def __init__(self, cty_file: str = '/workspace/data/cty.dat'):
+    def __init__(self, cty_file: str = '/workspace/cty.dat'):
         """初始化并加载 CTY 数据库"""
         self.entities = {}
         self.prefix_map = {}
+        
+        # 检查文件是否存在
+        import os
+        if not os.path.exists(cty_file) or os.path.getsize(cty_file) < 100:
+            print(f'⚠️  CTY.DAT 文件不存在或太小 ({cty_file})，使用简化模式')
+            return
+        
+        # 仅当文件有效时才加载
         self._load_cty(cty_file)
     
     def _load_cty(self, filepath: str):
@@ -41,7 +49,7 @@ class CTYData:
                         'itu': int(itu),
                         'continent': continent.strip(),
                         'lat': float(lat),
-                        'lon': float(lon),
+                        'lon': -float(lon),  # CTY 使用西经为正，取反转换为标准东经为正
                         'timezone': float(tz),
                         'primary_prefix': primary.strip().lstrip('*')
                     }
@@ -61,6 +69,10 @@ class CTYData:
                     
                     for prefix in raw_prefixes:
                         if not prefix:
+                            continue
+                        
+                        # 忽略操作符前缀（包含 / 的）
+                        if '/' in prefix:
                             continue
                         
                         # 提取基础前缀（去掉括号和数字后缀）

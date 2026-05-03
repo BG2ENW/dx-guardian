@@ -1,6 +1,6 @@
 """
 LoTW 用户活动数据库加载器
-加载 /workspace/data/lotw-user-activity.csv 用于验证呼号有效性
+加载 /workspace/lotw-user-activity.csv 用于验证呼号有效性
 """
 import csv
 from datetime import datetime
@@ -10,14 +10,17 @@ from typing import Set, Dict, Optional
 class LOTWDatabase:
     """LoTW 用户数据库"""
     
-    def __init__(self, csv_file: str = '/workspace/data/lotw-user-activity.csv'):
-        """初始化并加载 LoTW 数据库
+    def __init__(self, csv_file: str = '/workspace/lotw-user-activity.csv'):
+        """初始化并加载 LoTW 数据库"""
+        self.users = set()
+        self.activity = {}
         
-        Args:
-            csv_file: lotw-user-activity.csv 文件路径
-        """
-        self.users = set()  # 呼号集合
-        self.activity = {}  # 呼号 -> 活动信息
+        # 检查文件
+        import os
+        if not os.path.exists(csv_file) or os.path.getsize(csv_file) < 100:
+            print(f'⚠️  LoTW 数据库不存在或太小 ({csv_file})，使用简化模式')
+            return
+        
         self._load_csv(csv_file)
     
     def _load_csv(self, filepath: str):

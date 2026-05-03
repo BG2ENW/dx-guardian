@@ -266,14 +266,25 @@ async function toggleWatchlistItem(id, enabled) {
 }
 
 // === 时间筛选 ===
-let timeFilter = 240; // 默认4小时
+let timeFilter = 30; // 默认 30 分钟
 const TIME_OPTIONS = [
-    {label: '15分钟', value: 15},
-    {label: '30分钟', value: 30},
-    {label: '1小时', value: 60},
-    {label: '2小时', value: 120},
-    {label: '4小时', value: 240},
+    {label: '15 分钟', value: 15},
+    {label: '30 分钟', value: 30},
+    {label: '1 小时', value: 60},
+    {label: '2 小时', value: 120},
+    {label: '4 小时', value: 240},
     {label: '全部', value: 0}
+];
+
+// === 模式筛选 ===
+let modeFilter = 'FT8'; // 默认只显示 FT8
+const MODE_FILTER_OPTIONS = [
+    {value: 'ALL', label: '所有模式'},
+    {value: 'FT8', label: 'FT8'},
+    {value: 'FT4', label: 'FT4'},
+    {value: 'CW', label: 'CW'},
+    {value: 'SSB', label: 'SSB'},
+    {value: 'RTTY', label: 'RTTY'},
 ];
 
 // === 波段筛选 ===
@@ -281,7 +292,7 @@ let activeBandFilter = null; // 当前筛选的波段
 
 // 所有 Spot 历史（带时间戳和标记）
 const spotHistory = []; // {spot, marker, receivedAt}
-const MAX_HISTORY = 10000;
+const MAX_HISTORY = 500; // 限制最多 500 条，避免页面卡顿
 
 const startTime = Date.now();
 
@@ -518,10 +529,22 @@ function updateHeatmap() {
         .filter(entry => entry.marker) // 只取可见的标记
         .map(entry => {
             const spot = entry.spot;
-            return [spot.lat, spot.lon, 1.0]; // 强度统一为1，后续可优化
+            return [spot.lat, spot.lon, 1.0]; // 强度统一为 1，后续可优化
         });
     
     heatLayer.setLatLngs(heatData);
+}
+
+// 地图缩放控制
+function zoomMap(delta) {
+    if (!map) return;
+    const zoom = map.getZoom();
+    map.setZoom(zoom + delta);
+}
+
+function resetMapZoom() {
+    if (!map) return;
+    map.setView([20, 0], 2);
 }
 
 // ========== 灰线覆盖层 ==========
@@ -814,6 +837,22 @@ function initSocket() {
             document.getElementById('total-spots').textContent = totalSpots;
         }
     });
+    
+    // 太阳数据更新
+    socket.on('solar_update', (data) => {
+        if (data.sfi) {
+            document.getElementById('solar-sfi').textContent = data.sfi;
+        }
+        if (data.sn) {
+            document.getElementById('solar-ssn').textContent = data.sn;
+        }
+        if (data.k) {
+            document.getElementById('solar-k').textContent = data.k;
+        }
+        if (data.a_index) {
+            document.getElementById('solar-a').textContent = data.a_index;
+        }
+    });
 }
 
 // 加载历史
@@ -896,7 +935,8 @@ function createSpotMarker(spotData) {
     const color = MODE_COLORS[mode] || MODE_COLORS['UNKNOWN'];
     const precision = spotData.precision || 'dxcc';
 
-    const size = precision === 'grid' ? 10 : 14;
+    // 根据精度调整标记大小：grid/grid_db 显示小一点（精确），其他显示大一点
+    const size = (precision === 'grid' || precision === 'grid_db') ? 10 : 14;
     const pulseSize = size + 12;
 
     try {
@@ -913,6 +953,7 @@ function createSpotMarker(spotData) {
         const marker = L.marker([spotData.lat, spotData.lon], {icon: icon}).addTo(map);
 
         const gridInfo = spotData.grid ? '<br/>📍 Grid: ' + spotData.grid : '';
+        console.log(`[DEBUG] ${spotData.callsign}: grid=${spotData.grid}, precision=${spotData.precision}, freq=${spotData.freq}`);
         const cqItuInfo = (spotData.cq || spotData.itu) ? 
             '<br/>🗺️ CQ:' + (spotData.cq || '?') + ' ITU:' + (spotData.itu || '?') : '';
         const lotwBadge = spotData.lotw_verified ? 
@@ -922,7 +963,7 @@ function createSpotMarker(spotData) {
         const timeStr = spotData.time ? '<br/>🕐 ' + spotData.time : '';
         const spotterInfo = spotData.spotter ? '<br/>📢 报告：' + spotData.spotter : '';
         const commentInfo = spotData.comment ? '<br/>💬 ' + spotData.comment : '';
-        const precisionLabel = spotData.precision === 'grid' ? ' (精确)' : (spotData.precision === 'cty' ? ' (CTY)' : (spotData.precision === 'dxcc' ? ' (国家)' : ''));
+        const precisionLabel = (spotData.precision === 'grid' || spotData.precision === 'grid_db') ? ' (精确)' : (spotData.precision === 'cty' ? ' (CTY)' : (spotData.precision === 'dxcc' ? ' (国家)' : ''));
 
         marker.bindTooltip(
             '<div style="min-width:180px;">' +
@@ -972,10 +1013,24 @@ function cleanupExpiredMarkers() {
 // 设置时间筛选
 function setTimeFilter(minutes) {
     timeFilter = minutes;
-    document.querySelectorAll('.time-btn').forEach(btn => {
+    document.querySelectorAll('.time-btn, .time-btn2').forEach(btn => {
         const onclick = btn.getAttribute('onclick') || '';
         const match = onclick.match(/setTimeFilter\((\d+)\)/);
         btn.classList.toggle('active', match && parseInt(match[1]) === minutes);
+    });
+    rerenderAllMarkers();
+}
+
+// 设置模式筛选
+function setModeFilter(mode) {
+    modeFilter = mode;
+    const selectEl = document.getElementById('mode-filter-select');
+    if (selectEl) {
+        selectEl.value = mode;
+    }
+    // 同步所有下拉框
+    document.querySelectorAll('#mode-filter-select').forEach(el => {
+        el.value = mode;
     });
     rerenderAllMarkers();
 }
@@ -1008,7 +1063,8 @@ function rerenderAllMarkers() {
     spotHistory.forEach(entry => {
         const timeVisible = entry.receivedAt >= cutoff;
         const bandVisible = !activeBandFilter || entry.spot.band === activeBandFilter;
-        const visible = timeVisible && bandVisible;
+        const modeVisible = !modeFilter || modeFilter === 'ALL' || entry.spot.mode === modeFilter;
+        const visible = timeVisible && bandVisible && modeVisible;
 
         if (visible && !entry.marker) {
             entry.marker = createSpotMarker(entry.spot);
@@ -1033,17 +1089,18 @@ function renderBandBar() {
     const container = document.getElementById('band-bar');
     if (!container) return;
 
-    container.innerHTML = BANDS.map(band => {
+    container.innerHTML = '';
+    BANDS.forEach(band => {
         const bandEl = document.createElement('div');
         bandEl.className = 'band-item';
+        bandEl.id = 'band-' + band;
+        bandEl.dataset.band = band;
         bandEl.innerHTML =
             '<span class="band-count" id="count-' + band + '">0</span>' +
             '<span class="band-name">' + band + '</span>';
-        bandEl.id = 'band-' + band;
-        bandEl.dataset.band = band;
         bandEl.addEventListener('click', () => toggleBandFilter(band));
-        return bandEl.outerHTML;
-    }).join('');
+        container.appendChild(bandEl);
+    });
 }
 
 // 更新波段计数

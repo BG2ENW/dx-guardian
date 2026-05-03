@@ -3,11 +3,15 @@ from datetime import datetime, timezone
 from collections import OrderedDict
 
 class SpotParser:
+    # Grid 提取正则（忽略大小写，支持 4 位和 6 位）
+    GRID_PATTERN = re.compile(r'\b([A-R]{2}\d{2}[A-X]{0,2})\b', re.IGNORECASE)
+    
     # Pattern 1: DX de REPORTER: CALLSIGN FREQ MODE COMMENT (常见格式)
-    PATTERN1 = re.compile(r'DX\s+de\s+(?P<reporter>\S+)\s*:\s*(?P<callsign>\S+)\s+(?P<freq>[\d.]+)\s+(?P<mode>\S+)(?:\s+(?P<comment>.*?))?(?:\s+(?P<time>\d{4}Z))?')
+    # comment 捕获 time 之前的所有内容
+    PATTERN1 = re.compile(r'DX\s+de\s+(?P<reporter>\S+)\s*:\s*(?P<callsign>\S+)\s+(?P<freq>[\d.]+)\s+(?P<mode>\S+)\s+(?P<comment>.+?)?\s*(?P<time>\d{4}Z)\s*$')
     
     # Pattern 2: DX de REPORTER: FREQ CALLSIGN MODE COMMENT (另一种格式)
-    PATTERN2 = re.compile(r'DX\s+de\s+(?P<reporter>\S+)\s*:\s*(?P<freq>[\d.]+)\s+(?P<callsign>\S+)\s+(?P<mode>\S+)(?:\s+(?P<comment>.*?))?(?:\s+(?P<time>\d{4}Z))?')
+    PATTERN2 = re.compile(r'DX\s+de\s+(?P<reporter>\S+)\s*:\s*(?P<freq>[\d.]+)\s+(?P<callsign>\S+)\s+(?P<mode>\S+)\s+(?P<comment>.+?)?\s*(?P<time>\d{4}Z)\s*$')
     
     def parse(self, line):
         # Try pattern 1 first (more common)
@@ -24,15 +28,25 @@ class SpotParser:
     
     def _create_spot(self, match):
         freq_khz = float(match.group('freq'))
+        comment = match.group('comment') or ''
+        
+        # 从 comment 中提取 Grid
+        grid = None
+        if comment:
+            grid_match = self.GRID_PATTERN.search(comment)
+            if grid_match:
+                grid = grid_match.group(1).upper()  # 统一转大写
+        
         return {
             'callsign': match.group('callsign').upper(),
             'freq': freq_khz,
             'mode': match.group('mode').upper(),
             'reporter': match.group('reporter'),
-            'comment': match.group('comment') or '',
+            'comment': comment,
             'time': match.group('time') or '',
             'timestamp': datetime.now(timezone.utc).isoformat(),
-            'band': self._freq_to_band(freq_khz)
+            'band': self._freq_to_band(freq_khz),
+            'grid': grid
         }
     
     def _freq_to_band(self, freq_khz):

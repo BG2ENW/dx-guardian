@@ -199,18 +199,21 @@
         }
         
         /* ===== Band Bar (内嵌到 Top Bar) ===== */
-        .band-bar { display: flex; gap: 4px; align-items: center; }
+        .band-bar { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
         .band-item {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             min-width: 48px; padding: 2px 6px;
             background: rgba(255,255,255,0.08); border-radius: 4px;
             font-size: 10px; color: var(--text-secondary); cursor: pointer;
             transition: all 0.2s; border: 1px solid transparent;
+            position: relative;
         }
         .band-item:hover { background: rgba(255,255,255,0.15); }
-        .band-item.active { border-color: var(--accent-primary); background: var(--accent-primary, rgba(233,69,96,0.2)); color: var(--text-primary); }
-        .band-item.filter-active { border-color: var(--accent-secondary); background: var(--accent-secondary, rgba(76,175,80,0.2)); color: var(--text-primary); }
-        .band-count { font-size: 13px; font-weight: bold; color: var(--accent-primary); transition: color 0.3s; }
+        .band-item.active { border-color: var(--accent-primary); background: rgba(233,69,96,0.3); }
+        .band-item.filter-active { border-color: var(--accent-secondary); background: rgba(76,175,80,0.3); box-shadow: 0 0 8px rgba(76,175,80,0.4); }
+        .band-item.inactive { opacity: 0.4; }
+        .band-name { font-size: 9px; color: rgba(255,255,255,0.9); margin-bottom: 1px; }
+        .band-count { font-size: 13px; font-weight: bold; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
         
         /* ===== Main Layout ===== */
         .layout {
@@ -240,10 +243,8 @@
         .column-map {
             position: relative;
             background: var(--bg-primary);
-            display: flex;
-            flex-direction: column;
         }
-        #dx-map { width: 100%; flex: 1; }
+        #dx-map { width: 100%; height: 100%; }
         
         /* ===== Draggable Cards ===== */
         .card {
@@ -373,6 +374,15 @@
         .time-btn:hover { background: rgba(255,255,255,0.12); color: #ccc; }
         .time-btn.active { background: rgba(233,69,96,0.3); border-color: #e94560; color: #fff; font-weight: bold; }
         
+        /* 顶部筛选按钮（新） */
+        .time-btn2 {
+            padding: 3px 8px; font-size: 11px; border: 1px solid #444;
+            background: rgba(255,255,255,0.08); color: #aaa; border-radius: 4px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .time-btn2:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .time-btn2.active { background: rgba(233,69,96,0.4); border-color: #e94560; color: #fff; font-weight: bold; box-shadow: 0 0 6px rgba(233,69,96,0.4); }
+        
         /* 上传区域 */
         .upload-area {
             border: 2px dashed rgba(255,255,255,0.1); border-radius: 6px;
@@ -439,6 +449,23 @@
             <div class="band-bar" id="band-bar"></div>
         </div>
         <div class="topbar-right">
+            <div class="filter-bar" style="display:flex;align-items:center;gap:6px;margin-right:12px;">
+                <div style="display:flex;gap:3px;">
+                    <button class="time-btn2" onclick="setTimeFilter(15)">15m</button>
+                    <button class="time-btn2 active" onclick="setTimeFilter(30)">30m</button>
+                    <button class="time-btn2" onclick="setTimeFilter(60)">1h</button>
+                    <button class="time-btn2" onclick="setTimeFilter(240)">4h</button>
+                </div>
+                <select id="mode-filter-select" onchange="setModeFilter(this.value)" style="padding:2px 6px;border-radius:3px;border:1px solid #444;background:#1a1a2e;color:#fff;font-size:11px;cursor:pointer;">
+                    <option value="ALL">所有模式</option>
+                    <option value="FT8" selected>FT8</option>
+                    <option value="FT4">FT4</option>
+                    <option value="CW">CW</option>
+                    <option value="SSB">SSB</option>
+                    <option value="RTTY">RTTY</option>
+                </select>
+                <span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">显示：<span id="visible-count">0</span></span>
+            </div>
             <div class="topbar-stats">
                 <span><span class="dot-on" id="conn-dot"></span> <span id="conn-text">已连接</span></span>
                 <span>总 Spot: <span class="val" id="total-spots">0</span></span>
@@ -478,12 +505,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-        <div class="topbar-stats">
-            <span><span class="dot-on" id="conn-dot"></span> <span id="conn-text">已连接</span></span>
-            <span>总 Spot: <span class="val" id="total-spots">0</span></span>
-            <span>运行: <span class="val" id="uptime">0h 0m</span></span>
         </div>
     </div>
     
@@ -554,14 +575,12 @@
         <!-- Map Column -->
         <div class="column-map">
             <div id="dx-map"></div>
-            <div style="position:absolute;bottom:8px;left:8px;display:flex;gap:4px;z-index:999;">
-                <button class="time-btn" onclick="setTimeFilter(15)">15m</button>
-                <button class="time-btn" onclick="setTimeFilter(30)">30m</button>
-                <button class="time-btn" onclick="setTimeFilter(60)">1h</button>
-                <button class="time-btn" onclick="setTimeFilter(240)">4h</button>
-                <button class="time-btn active" onclick="setTimeFilter(0)">全部</button>
+            <div style="position:absolute;bottom:8px;left:8px;display:flex;flex-direction:column;gap:6px;z-index:100;pointer-events:auto;">
+                <button class="time-btn" onclick="zoomMap(1)">➕ 放大</button>
+                <button class="time-btn" onclick="zoomMap(-1)">➖ 缩小</button>
+                <button class="time-btn" onclick="resetMapZoom()">🌍 全球</button>
             </div>
-            <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:999;">
+            <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:100;pointer-events:auto;">
                 <button class="time-btn" id="btn-heat" onclick="toggleHeatmap()">🔥 热力</button>
                 <button class="time-btn" id="btn-gray" onclick="toggleGrayline()">🌑 灰线</button>
                 <button class="time-btn" id="btn-grid" onclick="toggleGridOverlay()">📐 网格</button>
@@ -656,7 +675,7 @@
     <script src="js/leaflet.js?v=1.5"></script>
     <script src="js/leaflet-heat.js?v=1.5"></script>
     <script src="js/socket.io.min.js?v=1.5"></script>
-    <script src="js/app.js?v=1.5"></script>
+    <script src="js/app.js?v=1.7"></script>
     <script src="js/alerts.js?v=1.5"></script>
     <script src="js/score_display.js?v=1.5"></script>
     <script src="js/push.js?v=1.5"></script>

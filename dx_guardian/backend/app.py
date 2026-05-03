@@ -533,6 +533,37 @@ def cluster_thread():
                 log(f'[Cluster] 切换到服务器 {CLUSTER_SERVERS[server_index]["host"]}')
 
 
+def find_psk_grid_for_callsign(callsign):
+    """从历史缓存中查找该呼号的 PSK Reporter Grid
+    
+    优先返回最近从 PSK Reporter 收到的 Grid（带 Grid 且 source='pskreporter'）
+    
+    Args:
+        callsign: 呼号
+    
+    Returns:
+        str or None: Grid 方格，如果没有找到则返回 None
+    """
+    callsign_upper = callsign.upper()
+    
+    # 从最近的 Spot 开始查找（倒序）
+    for spot in reversed(spot_history):
+        # 只考虑 PSK Reporter 数据源
+        if spot.get('source') != 'pskreporter':
+            continue
+        
+        # 呼号匹配
+        if spot.get('callsign', '').upper() != callsign_upper:
+            continue
+        
+        # 有 Grid 且有效
+        grid = spot.get('grid')
+        if grid and len(grid) >= 4:
+            return grid.upper()
+    
+    return None
+
+
 def add_to_history(spot):
     """添加 Spot 到后端缓存（线程安全，自动清理24小时外的数据）"""
     with lock:
@@ -553,7 +584,7 @@ def add_to_history(spot):
 
 
 def process_spot(line):
-    """处理一行Cluster数据"""
+    """处理一行 Cluster 数据"""
     global total_spots
 
     spot = parser.parse(line)
@@ -568,13 +599,28 @@ def process_spot(line):
     if dedup.is_duplicate(spot):
         return
 
+    # ============ 优先从 PSK Reporter 历史获取 Grid ============
+    # 如果 Cluster Spot 没有 Grid，尝试从历史缓存中查找该呼号的 PSK Reporter Grid
+    spot_grid = spot.get('grid')
+    if not spot_grid and spot.get('source') != 'pskreporter':
+        psk_grid = find_psk_grid_for_callsign(spot['callsign'])
+        if psk_grid:
+            spot_grid = psk_grid
+            print(f"[PSK Grid] {spot['callsign']}: 从 PSK Reporter 历史获取 Grid={psk_grid}", flush=True)
+    
+    # 如果找到了 Grid，更新到 spot 中
+    if spot_grid:
+        spot['grid'] = spot_grid
+
     # 坐标解析（安全包裹）
     try:
-        coords = resolve_coordinates(spot['callsign'], spot.get('grid'))
+        coords = resolve_coordinates(spot['callsign'], spot_grid)
         spot['lat'] = coords.get('lat', 0)
         spot['lon'] = coords.get('lon', 0)
         spot['precision'] = coords.get('precision', 'dxcc')
         spot['dxcc'] = coords.get('dxcc', '')
+        # 调试日志：显示 Grid 使用情况（所有 spot 都输出）
+        print(f"[坐标] {spot['callsign']}: Grid={spot_grid or 'None'}, precision={spot['precision']}, lat={spot['lat']:.2f}, lon={spot['lon']:.2f}", flush=True)
     except Exception as e:
         log(f"[坐标解析异常] {spot['callsign']}: {e}")
         spot['lat'] = 0
@@ -629,13 +675,26 @@ def process_spot(line):
             spot['recommendation'] = score_result['recommendation']
             
             # 添加 cq/itu/lotw_verified 字段（如果坐标解析器提供了）
-            coords = resolve_coordinates(spot.get('callsign', ''), spot.get('grid', None))
+            # 优先使用 spot 中已有的 grid（来自 PSKReporter），如果没有再用 CTY 计算
+            incoming_grid = spot.get('grid', '').strip() if spot.get('grid') else None
+            coords = resolve_coordinates(spot.get('callsign', ''), incoming_grid)
             if coords.get('cq'):
                 spot['cq'] = coords['cq']
             if coords.get('itu'):
                 spot['itu'] = coords['itu']
             if coords.get('lotw_verified') is not None:
                 spot['lotw_verified'] = coords['lotw_verified']
+            # 只有当 spot 原本没有 grid 时，才使用计算出的 grid
+            if not incoming_grid and coords.get('grid'):
+                spot['grid'] = coords['grid']
+            if coords.get('lat'):
+                spot['lat'] = coords['lat']
+            if coords.get('lon'):
+                spot['lon'] = coords['lon']
+            if coords.get('precision'):
+                spot['precision'] = coords['precision']
+            if coords.get('dxcc'):
+                spot['dxcc'] = coords['dxcc']
     except Exception as e:
         log(f'[评分异常] {e}')
 

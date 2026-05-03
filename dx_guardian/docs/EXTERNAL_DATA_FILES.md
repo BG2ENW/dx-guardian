@@ -328,4 +328,5 @@ class CoordinateResolver:
 - **LoTW Activity**: https://lotw.arrl.org/lotw-user-activity.csv
 - **Maidenhead Grid**: https://en.wikipedia.org/wiki/Maidenhead_Locator_System
 - **DXCC Entities**: https://lotw.arrl.org/lotw-help/usinglotw/
+- **JTDX Grid 数据库格式**: [JTDX_GRID_DATABASE_FORMAT.md](./JTDX_GRID_DATABASE_FORMAT.md) - 详细的二进制格式解析
 
