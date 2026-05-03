@@ -450,6 +450,15 @@ def cluster_thread():
                 cluster_connected = True
             reconnect_attempts = 0
             socketio.emit('server_status', {'cluster_connected': True})
+            # 发送命令启用 Spot 推送
+            log("[Cluster] 发送配置命令...")
+            try:
+                s.send(b"SET/USER DXCluster\n")
+                s.send(b"SET/DXCOUNT 50\n")
+                time.sleep(0.5)
+            except Exception as e:
+                log(f"[Cluster] 配置命令失败：{e}")
+
 
             # 接收循环
             s.settimeout(30)
@@ -461,9 +470,12 @@ def cluster_thread():
                         raise Exception('连接关闭')
 
                     buffer += data
+                    if len(data) > 0:
+                        log(f"[Cluster 数据] 收到 {len(data)} 字节")
                     while '\n' in buffer:
                         line, buffer = buffer.split('\n', 1)
                         line = line.strip()
+                        log(f"[Cluster 行] {line[:100]}")
                         if line:
                             try:
                                 process_spot(line)
@@ -507,6 +519,7 @@ def cluster_thread():
 def add_to_history(spot):
     """添加 Spot 到后端缓存（线程安全，自动清理24小时外的数据）"""
     with lock:
+        log(f"[历史缓存]存入 spot: {spot['callsign']} {spot['freq']} {spot['mode']}")
         spot['_server_ts'] = time.time()
         spot_history.append(spot)
         
@@ -527,6 +540,8 @@ def process_spot(line):
     global total_spots
 
     spot = parser.parse(line)
+    if len(line) > 5:
+        print(f"[process_spot] {line[:80]}", flush=True)
     if not spot:
         return
 
@@ -544,16 +559,15 @@ def process_spot(line):
         spot['precision'] = coords.get('precision', 'dxcc')
         spot['dxcc'] = coords.get('dxcc', '')
     except Exception as e:
-        log(f'[坐标解析异常] {spot["callsign"]}: {e}')
+        log(f"[坐标解析异常] {spot['callsign']}: {e}")
         spot['lat'] = 0
         spot['lon'] = 0
         spot['precision'] = 'dxcc'
         spot['dxcc'] = ''
-
-    # 跳过无坐标的
-    if spot['lat'] == 0 and spot['lon'] == 0:
-        return
-
+    # 跳过无坐标的 (已禁用)
+    # if spot["lat"] == 0 and spot["lon"] == 0:
+    #     return
+    # if spot['lat'] == 0 and spot['lon'] == 0:
     # 更新统计
     with lock:
         total_spots += 1
@@ -619,7 +633,7 @@ def process_spot(line):
     except Exception as e:
         pass
 
-    log(f'[Spot] {spot["callsign"]:8s} {spot["freq"]:8.3f} {spot["band"]:5s} {spot["mode"]:4s} lat:{spot["lat"]:.2f} lon:{spot["lon"]:.2f} {spot.get("dxcc","")}')
+    log("[Spot] {} {} {} {} lat:{} lon:{} {}".format(spot["callsign"], spot["freq"], spot["band"], spot["mode"], spot["lat"], spot["lon"], spot.get("dxcc","")))
 
 
 # ========== PSKReporter 数据源 ==========
