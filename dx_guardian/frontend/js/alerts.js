@@ -101,7 +101,7 @@ async function loadAlertStats() {
 
 // =========== 预警渲染 ===========
 function renderAlerts() {
-    const container = document.getElementById('alert-container');
+    const container = document.getElementById('alerts-container');
     const countEl = document.getElementById('alert-count');
     if (!container) return;
 
@@ -502,7 +502,7 @@ async function loadMissingDXCCScores() {
 }
 
 function renderMissingDXCCScores() {
-    const container = document.getElementById('scores-container');
+    const container = document.getElementById('opps-container');
     if (!container) return;
 
     if (missingDXCCScores.length === 0) {
@@ -569,7 +569,7 @@ socket.on('spot:new', () => {
 let bandChart = null;
 
 function initBandChart(bandStats) {
-    const canvas = document.getElementById('band-chart-canvas');
+    const canvas = document.getElementById('band-chart');
     if (!canvas) return;
 
     const bandNames = Object.keys(bandStats);

@@ -54,9 +54,10 @@ async function loadStationConfig() {
             MY_STATION.antenna = config.antenna || '';
             
             // 更新显示
-            document.getElementById('my-callsign').textContent = MY_STATION.callsign;
-            document.getElementById('my-grid').textContent = MY_STATION.grid;
-            document.getElementById('my-power').textContent = `${MY_STATION.power}W · ${MY_STATION.antenna || '未知天线'}`;
+            document.getElementById('st-call').textContent = MY_STATION.callsign;
+            document.getElementById('st-grid').textContent = MY_STATION.grid || '--';
+            document.getElementById('st-power').textContent = MY_STATION.power ? MY_STATION.power + 'W' : '--';
+            document.getElementById('st-antenna').textContent = MY_STATION.antenna || '--';
         }
     } catch (e) {
         console.error('加载台站配置失败:', e);
@@ -64,15 +65,23 @@ async function loadStationConfig() {
 }
 
 function openStationEdit() {
+    const modal = document.getElementById('station-modal');
+    if (!modal) return;
     document.getElementById('edit-callsign').value = MY_STATION.callsign || '';
     document.getElementById('edit-grid').value = MY_STATION.grid || '';
     document.getElementById('edit-power').value = MY_STATION.power || '';
     document.getElementById('edit-antenna').value = MY_STATION.antenna || '';
-    document.getElementById('station-modal').style.display = 'flex';
+    document.getElementById('station-save-status').textContent = '';
+    modal.style.display = 'flex';
 }
 
 function closeStationModal() {
-    document.getElementById('station-modal').style.display = 'none';
+    const modal = document.getElementById('station-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function editStation() {
+    openStationEdit();
 }
 
 async function saveStationConfig() {
@@ -180,16 +189,19 @@ function renderWatchlist() {
 }
 
 function openWatchlistModal() {
+    const modal = document.getElementById('watchlist-modal');
+    if (!modal) return;
     document.getElementById('wl-type').value = 'callsign';
     document.getElementById('wl-value').value = '';
     document.getElementById('wl-band').value = '';
     document.getElementById('wl-mode').value = '';
     document.getElementById('wl-status').textContent = '';
-    document.getElementById('watchlist-modal').style.display = 'flex';
+    modal.style.display = 'flex';
 }
 
 function closeWatchlistModal() {
-    document.getElementById('watchlist-modal').style.display = 'none';
+    const modal = document.getElementById('watchlist-modal');
+    if (modal) modal.style.display = 'none';
 }
 
 async function addWatchlistItem() {
@@ -269,26 +281,113 @@ let activeBandFilter = null; // 当前筛选的波段
 const spotHistory = []; // {spot, marker, receivedAt}
 const MAX_HISTORY = 10000;
 
+const startTime = Date.now();
+
+function updateUptime() {
+    const elapsed = Math.floor((Date.now() - startTime) / 60000);
+    const el = document.getElementById('uptime');
+    if (el) el.textContent = Math.floor(elapsed / 60) + 'h ' + (elapsed % 60) + 'm';
+}
+
+async function loadSolarData() {
+    try {
+        const resp = await fetch('/api/stats/solar');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.success && data.solar) {
+            const s = data.solar;
+            const el1 = document.getElementById('solar-sfi'); if (el1) el1.textContent = s.sfi || '--';
+            const el2 = document.getElementById('solar-ssn'); if (el2) el2.textContent = s.ssn || '--';
+            const el3 = document.getElementById('solar-k'); if (el3) el3.textContent = s.k_index || '--';
+            const el4 = document.getElementById('solar-a'); if (el4) el4.textContent = s.a_index || '--';
+        }
+    } catch(e) { console.error('加载太阳数据失败:', e); }
+}
+
+function updateSystemStatus(data) {
+    const el1 = document.getElementById('cluster-status');
+    if (el1) el1.textContent = data.cluster_connected ? '已连接' : '未连接';
+    const el2 = document.getElementById('psk-status');
+    if (el2) el2.textContent = data.psk_connected ? '已连接' : '等待中';
+    const el3 = document.getElementById('cache-count');
+    if (el3) el3.textContent = spotHistory.length;
+}
+
+function initDragAndDrop() {
+    if (typeof Sortable === 'undefined') return;
+    ['col-left', 'col-right'].forEach(colId => {
+        const el = document.getElementById(colId);
+        if (!el) return;
+        Sortable.create(el, {
+            group: 'cards', animation: 150, handle: '.card-header',
+            ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen',
+            store: {
+                get: function(s) {
+                    const order = localStorage.getItem('dx-card-order-' + s.el.id);
+                    return order ? order.split('|') : [];
+                },
+                set: function(s) {
+                    localStorage.setItem('dx-card-order-' + s.el.id, s.toArray().join('|'));
+                }
+            }
+        });
+    });
+    restoreCardOrder();
+}
+
+function restoreCardOrder() {
+    ['col-left', 'col-right'].forEach(colId => {
+        const order = localStorage.getItem('dx-card-order-' + colId);
+        if (!order) return;
+        const col = document.getElementById(colId);
+        if (!col) return;
+        order.split('|').filter(id => document.getElementById(id)).forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.parentElement === col) col.appendChild(el);
+        });
+    });
+}
+
+function toggleCard(id) {
+    const card = document.getElementById(id);
+    if (card) card.classList.toggle('collapsed');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    loadStationConfig();  // 加载台站配置
-    loadWatchlist();       // 加载关注列表
+    loadStationConfig();
+    loadWatchlist();
+    loadSolarData();
+    setInterval(loadSolarData, 300000);
     initMap();
     initSocket();
     renderBandBar();
-    loadHistory();  // 加载历史 Spot
-
-    // 每30秒清理过期标记
-    setInterval(cleanupExpiredMarkers, 30000);
-    
-    // 每30秒更新热点图
+    loadHistory();
+    initDragAndDrop();
+    updateUptime();
+    setInterval(updateUptime, 60000);
     setInterval(() => {
-        if (showHeatmap) {
-            updateHeatmap();
-        }
-    }, 30000);
+        const el = document.getElementById('cache-count');
+        if (el) el.textContent = spotHistory.length;
+    }, 5000);
+    setInterval(cleanupExpiredMarkers, 30000);
+    setInterval(() => { if (showHeatmap) updateHeatmap(); }, 30000);
+    loadPropagation();
+    setInterval(loadPropagation, 300000);
+    loadTrends();
+    setInterval(loadTrends, 60000);
+    loadVOACAP();
+    setInterval(loadVOACAP, 300000);
+    loadBandOpening();
+    setInterval(loadBandOpening, 300000);
+    // 点击模态框外部关闭
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.style.display = 'none';
+        });
+    });
 });
 
-// 初始化地图
+// ========== 传播预测面板 ==========
 function initMap() {
     map = L.map('dx-map').setView([MY_STATION.lat, MY_STATION.lon], 3);
     L.tileLayer('https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
@@ -342,14 +441,13 @@ function addMyStationMarker() {
 // 热点图功能
 function toggleHeatmap() {
     showHeatmap = !showHeatmap;
-    
     if (showHeatmap) {
         updateHeatmap();
         heatLayer.addTo(map);
-        document.getElementById('heatmap-btn').classList.add('active');
+        document.getElementById('btn-heat').classList.add('active');
     } else {
         map.removeLayer(heatLayer);
-        document.getElementById('heatmap-btn').classList.remove('active');
+        document.getElementById('btn-heat').classList.remove('active');
     }
 }
 
@@ -374,7 +472,7 @@ let graylineUpdateTimer = null;
 
 async function toggleGrayline() {
     showGrayline = !showGrayline;
-    const btn = document.getElementById('grayline-btn');
+    const btn = document.getElementById('btn-gray');
     
     if (showGrayline) {
         btn.classList.add('active');
@@ -676,14 +774,11 @@ function cleanupExpiredMarkers() {
 // 设置时间筛选
 function setTimeFilter(minutes) {
     timeFilter = minutes;
-
     document.querySelectorAll('.time-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (parseInt(btn.dataset.minutes) === minutes) {
-            btn.classList.add('active');
-        }
+        const onclick = btn.getAttribute('onclick') || '';
+        const match = onclick.match(/setTimeFilter\((\d+)\)/);
+        btn.classList.toggle('active', match && parseInt(match[1]) === minutes);
     });
-
     rerenderAllMarkers();
 }
 
@@ -821,12 +916,6 @@ function renderPropagation(bands) {
     container.innerHTML = html;
 }
 
-// 加载传播数据
-document.addEventListener('DOMContentLoaded', () => {
-    loadPropagation();
-    setInterval(loadPropagation, 300000); // 5分钟刷新
-});
-
 // ========== 波段趋势分析 ==========
 async function loadTrends() {
     try {
@@ -841,7 +930,7 @@ async function loadTrends() {
 }
 
 function renderTrends(trends) {
-    const container = document.getElementById('trend-container');
+    const container = document.getElementById('trends-container');
     if (!container) return;
     
     if (!trends || !trends.bands || Object.keys(trends.bands).length === 0) {
@@ -890,12 +979,6 @@ function renderTrends(trends) {
     
     container.innerHTML = html;
 }
-
-// 加载趋势数据
-document.addEventListener('DOMContentLoaded', () => {
-    loadTrends();
-    setInterval(loadTrends, 60000); // 1分钟刷新
-});
 
 // ========== VOACAP 传播预测 ==========
 async function loadVOACAP() {
@@ -954,12 +1037,6 @@ function renderVOACAP(data) {
     container.innerHTML = html;
 }
 
-// 加载VOACAP数据
-document.addEventListener('DOMContentLoaded', () => {
-    loadVOACAP();
-    setInterval(loadVOACAP, 300000); // 5分钟刷新
-});
-
 // ========== 波段开放预测 ==========
 async function loadBandOpening() {
     try {
@@ -974,7 +1051,7 @@ async function loadBandOpening() {
 }
 
 function renderBandOpening(forecast) {
-    const container = document.getElementById('band-opening-container');
+    const container = document.getElementById('bandopening-container');
     if (!container) return;
     
     const keyBands = ['40m', '30m', '20m', '17m', '15m', '10m', '6m'];
@@ -1011,8 +1088,3 @@ function renderBandOpening(forecast) {
     container.innerHTML = html;
 }
 
-// 加载波段开放预测
-document.addEventListener('DOMContentLoaded', () => {
-    loadBandOpening();
-    setInterval(loadBandOpening, 300000); // 5分钟刷新
-});

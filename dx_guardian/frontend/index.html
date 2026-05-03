@@ -8,420 +8,507 @@
     <meta name="theme-color" content="#e94560">
     <link rel="stylesheet" href="css/leaflet.css"/>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1a1a2e; color: #e0e0e0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f0f1a;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+        }
         
-        /* 波段活动条 */
+        /* ===== Top Bar ===== */
+        .topbar {
+            height: 48px;
+            background: linear-gradient(90deg, #1a1a2e 0%, #16213e 100%);
+            border-bottom: 2px solid #e94560;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 1000;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 16px; }
+        .topbar-logo { font-size: 16px; font-weight: bold; color: #e94560; }
+        .topbar-stats { display: flex; gap: 12px; font-size: 12px; color: #aaa; }
+        .topbar-stats span { display: flex; align-items: center; gap: 4px; }
+        .topbar-stats .val { color: #fff; font-weight: bold; }
+        .dot-on { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; box-shadow: 0 0 6px #4CAF50; }
+        .dot-off { width: 8px; height: 8px; border-radius: 50%; background: #f44336; }
+        
+        /* ===== Band Bar (内嵌到 Top Bar) ===== */
         .band-bar {
-            position: fixed; top: 0; left: 0; right: 0; height: 48px;
-            background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
-            display: flex; align-items: center; justify-content: center; gap: 6px;
-            padding: 0 10px; z-index: 1000;
-            border-bottom: 1px solid #e94560;
+            display: flex; gap: 4px; align-items: center;
         }
         .band-item {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-width: 55px; padding: 4px 6px;
-            background: rgba(255,255,255,0.08); border-radius: 6px;
-            font-size: 11px; color: #aaa; cursor: pointer;
+            min-width: 48px; padding: 2px 6px;
+            background: rgba(255,255,255,0.08); border-radius: 4px;
+            font-size: 10px; color: #aaa; cursor: pointer;
             transition: all 0.2s; border: 1px solid transparent;
         }
         .band-item:hover { background: rgba(255,255,255,0.15); }
         .band-item.active { border-color: #e94560; background: rgba(233,69,96,0.2); color: #fff; }
         .band-item.filter-active { border-color: #4CAF50; background: rgba(76,175,80,0.2); color: #fff; }
-        .band-count { font-size: 15px; font-weight: bold; color: #e94560; }
+        .band-count { font-size: 13px; font-weight: bold; color: #e94560; }
         
-        /* 主布局 */
-        .main { display: flex; height: calc(100vh - 48px); margin-top: 48px; }
-        
-        /* 地图 */
-        .map-wrap { flex: 1; position: relative; }
-        #dx-map { width: 100%; height: 100%; background: #0a0a1a; }
-        
-        /* 右侧面板 */
-        .panel {
-            width: 300px; background: #16213e; border-left: 1px solid #0f3460;
-            padding: 16px; overflow-y: auto; flex-shrink: 0;
+        /* ===== Main Layout ===== */
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr 360px;
+            gap: 0;
+            height: calc(100vh - 48px);
         }
-        .panel-title { font-size: 14px; font-weight: bold; color: #e94560; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #0f3460; }
-        .panel-section { margin-bottom: 20px; }
         
-        /* 状态行 */
-        .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; color: #aaa; }
+        /* ===== Side Columns ===== */
+        .column {
+            overflow-y: auto;
+            padding: 8px;
+            background: #0f0f1a;
+        }
+        .column-left { border-right: 1px solid rgba(255,255,255,0.05); }
+        .column-right { border-left: 1px solid rgba(255,255,255,0.05); }
+        
+        /* 滚动条样式 */
+        .column::-webkit-scrollbar { width: 6px; }
+        .column::-webkit-scrollbar-track { background: transparent; }
+        .column::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+        .column::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        
+        /* ===== Map Column ===== */
+        .column-map {
+            position: relative;
+            background: #0a0a1a;
+            display: flex;
+            flex-direction: column;
+        }
+        #dx-map { width: 100%; flex: 1; }
+        
+        /* ===== Draggable Cards ===== */
+        .card {
+            background: #16213e;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            overflow: hidden;
+            transition: box-shadow 0.2s, transform 0.2s;
+            cursor: default;
+        }
+        .card:hover {
+            border-color: rgba(255,255,255,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(233,69,96,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 12px;
+            font-weight: bold;
+            color: #e94560;
+            cursor: move;
+        }
+        .card-header:hover { background: rgba(233,69,96,0.15); }
+        .card-header .drag-handle { cursor: move; opacity: 0.5; margin-right: 6px; }
+        .card-header:hover .drag-handle { opacity: 1; }
+        .card-body { padding: 10px 12px; }
+        .card.collapsed .card-body { display: none; }
+        .card.collapsed .collapse-btn::after { content: '+'; }
+        .collapse-btn::after { content: '−'; display: block; }
+        .collapse-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #e94560;
+            width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .collapse-btn:hover { background: rgba(255,255,255,0.2); }
+        
+        /* Sortable 拖拽样式 */
+        .sortable-ghost { opacity: 0.3; }
+        .sortable-chosen { box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        
+        /* ===== Content Styles ===== */
+        .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #aaa; }
         .row .val { color: #fff; font-weight: bold; }
         
-        /* 连接指示灯 */
-        .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-        .dot-on { background: #4CAF50; box-shadow: 0 0 6px #4CAF50; }
-        .dot-off { background: #f44336; }
-        .dot-wait { background: #FF9800; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.3; } }
-        @keyframes score-flash {
-            0% { filter: brightness(2); transform: scale(1.5); }
-            100% { filter: brightness(1); transform: scale(1); }
-        }
+        .solar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .solar-item { background: rgba(255,255,255,0.04); padding: 8px; border-radius: 4px; text-align: center; }
+        .solar-item .label { font-size: 9px; color: #888; margin-bottom: 2px; }
+        .solar-item .value { font-size: 16px; font-weight: bold; color: #e94560; }
         
-        /* Spot 列表 */
-        .spot {
-            padding: 8px; background: rgba(255,255,255,0.04); margin-bottom: 6px;
-            border-radius: 4px; border-left: 3px solid #e94560; font-size: 12px;
+        .alert-item {
+            padding: 6px 8px; background: rgba(255,255,255,0.04); margin-bottom: 4px;
+            border-radius: 4px; font-size: 11px;
+            border-left: 3px solid #e94560;
         }
-        .spot-call { font-weight: bold; color: #fff; font-size: 13px; }
-        .spot-freq { color: #e94560; font-size: 11px; }
-        .spot-info { color: #888; font-size: 11px; margin-top: 2px; }
+        .alert-item.priority-urgent { border-left-color: #f44336; background: rgba(244,67,54,0.1); }
+        .alert-item.priority-important { border-left-color: #FF9800; background: rgba(255,152,0,0.1); }
+        
+        .spot {
+            padding: 6px 8px; background: rgba(255,255,255,0.04); margin-bottom: 4px;
+            border-radius: 4px; border-left: 3px solid #e94560; font-size: 11px;
+        }
+        .spot-call { font-weight: bold; color: #fff; font-size: 12px; }
+        .spot-freq { color: #e94560; font-size: 10px; }
+        .spot-info { color: #888; font-size: 10px; margin-top: 2px; }
+        
+        .watchlist-item { padding: 4px 0; font-size: 11px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .watchlist-item:last-child { border-bottom: none; }
+        
+        .opp-item { padding: 6px 8px; background: rgba(255,255,255,0.04); margin-bottom: 4px; border-radius: 4px; }
+        .opp-score { float: right; font-weight: bold; color: #4CAF50; }
+        
+        .prop-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 11px; }
+        .prop-band { width: 40px; font-weight: bold; }
+        .prop-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+        .prop-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+        .prop-good { background: #4CAF50; }
+        .prop-mid { background: #FF9800; }
+        .prop-bad { background: #f44336; }
+        
+        .band-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .band-table th { padding: 4px; background: rgba(255,255,255,0.05); color: #aaa; text-align: center; }
+        .band-table td { padding: 3px; text-align: center; color: #fff; }
+        .band-open { background: rgba(76,175,80,0.2); color: #4CAF50; }
+        .band-closed { background: rgba(255,255,255,0.02); color: #555; }
         
         /* Spot 立体标记 */
         .spot-marker-wrapper { background: none !important; border: none !important; }
         .spot-pin { position: relative; display: flex; align-items: center; justify-content: center; }
         .spot-dot {
-            position: relative; z-index: 2;
-            border-radius: 50%;
-            background: var(--pin-color);
-            border: 2px solid rgba(255,255,255,0.9);
-            box-shadow:
-                0 2px 8px rgba(0,0,0,0.5),
-                0 0 6px var(--pin-color),
-                inset 0 -2px 4px rgba(0,0,0,0.3),
-                inset 0 2px 4px rgba(255,255,255,0.3);
+            position: relative; z-index: 2; border-radius: 50%;
+            background: var(--pin-color); border: 2px solid rgba(255,255,255,0.9);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 6px var(--pin-color),
+                inset 0 -2px 4px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3);
         }
         .spot-pulse {
-            position: absolute; z-index: 1;
-            border-radius: 50%;
-            background: var(--pin-color);
-            opacity: 0;
+            position: absolute; z-index: 1; border-radius: 50%;
+            background: var(--pin-color); opacity: 0;
             animation: spot-pulse-anim 2.5s ease-out infinite;
         }
         @keyframes spot-pulse-anim {
             0% { transform: scale(0.5); opacity: 0.6; }
             100% { transform: scale(1.8); opacity: 0; }
         }
+        @keyframes blink { 50% { opacity: 0.3; } }
         
-        /* Spot Tooltip */
+        /* Leaflet */
         .spot-tooltip { background: #1a1a2e !important; color: #e0e0e0; border: 1px solid #e94560; border-radius: 8px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
-        .spot-tooltip::before { border-top-color: #e94560; }
-        
-        /* Leaflet 弹出框样式覆盖 */
         .leaflet-popup-content-wrapper { background: #16213e; color: #e0e0e0; border: 1px solid #e94560; border-radius: 8px; }
         .leaflet-popup-tip { background: #16213e; }
-        .leaflet-popup-content { margin: 10px 14px; }
         
-        /* 时间筛选按钮 */
+        /* 时间筛选 */
         .time-btn {
-            padding: 3px 8px; font-size: 11px; border: 1px solid #0f3460;
-            background: rgba(255,255,255,0.05); color: #888; border-radius: 4px;
+            padding: 2px 6px; font-size: 10px; border: 1px solid #0f3460;
+            background: rgba(255,255,255,0.05); color: #888; border-radius: 3px;
             cursor: pointer; transition: all 0.2s;
         }
         .time-btn:hover { background: rgba(255,255,255,0.12); color: #ccc; }
         .time-btn.active { background: rgba(233,69,96,0.3); border-color: #e94560; color: #fff; font-weight: bold; }
         
-        /* 预警项 */
-        .alert-item {
-            padding: 8px; background: rgba(255,255,255,0.04); margin-bottom: 6px;
-            border-radius: 4px; font-size: 12px;
-            border: 1px solid rgba(255,255,255,0.08);
-            transition: all 0.2s;
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed rgba(255,255,255,0.1); border-radius: 6px;
+            padding: 12px; text-align: center; font-size: 11px; color: #888;
+            cursor: pointer; transition: all 0.2s;
         }
-        .alert-item:hover {
-            background: rgba(255,255,255,0.08);
-            border-color: rgba(255,255,255,0.15);
-        }
-        /* 预警筛选按钮 */
-        .alert-filter-btn.active {
-            font-weight: bold;
-            box-shadow: 0 0 6px rgba(255,255,255,0.2);
-        }
+        .upload-area:hover { border-color: #e94560; color: #e94560; }
+        .upload-area.dragover { border-color: #4CAF50; background: rgba(76,175,80,0.1); }
         
-        /* 太阳数据项 */
-        .solar-item {
-            background: rgba(255,255,255,0.04);
-            padding: 8px;
-            border-radius: 4px;
-            text-align: center;
+        /* Modal 样式 */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center;
         }
-        
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: #16213e; border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 24px; width: 90%; max-width: 420px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+        }
+        .modal-title { font-size: 16px; font-weight: bold; color: #e94560; margin-bottom: 16px; }
+        .modal-field { margin-bottom: 12px; }
+        .modal-field label { display: block; font-size: 12px; color: #aaa; margin-bottom: 4px; }
+        .modal-field input, .modal-field select {
+            width: 100%; padding: 8px 12px; background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
+            color: #fff; font-size: 13px; outline: none;
+        }
+        .modal-field input:focus, .modal-field select:focus { border-color: #e94560; }
+        .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+        .modal-actions button {
+            flex: 1; padding: 8px; border: none; border-radius: 6px;
+            font-size: 13px; cursor: pointer; font-weight: bold;
+        }
+        .btn-primary { background: #e94560; color: #fff; }
+        .btn-primary:hover { background: #d63a54; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: #aaa; }
+        .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+        .modal-status { font-size: 12px; margin-top: 8px; min-height: 18px; }
+
         /* 响应式 */
+        @media (max-width: 1024px) {
+            .layout { grid-template-columns: 220px 1fr 280px; }
+        }
         @media (max-width: 768px) {
-            .main { flex-direction: column; }
-            .panel { width: 100%; max-height: 180px; order: 1; }
-            .map-wrap { order: 2; flex: 1; }
-            .band-item { min-width: 40px; padding: 2px 4px; }
-            .band-count { font-size: 13px; }
+            .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+            .column-left, .column-right { max-height: 30vh; }
         }
     </style>
 </head>
 <body>
-    <!-- 波段活动条 -->
-    <div class="band-bar" id="band-bar"></div>
-    
-    <!-- 主容器 -->
-    <div class="main">
-        <div class="map-wrap">
-            <div id="dx-map"></div>
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="topbar-logo">📡 DX Guardian</div>
+            <div class="band-bar" id="band-bar"></div>
         </div>
-        <div class="panel">
+        <div class="topbar-stats">
+            <span><span class="dot-on" id="conn-dot"></span> <span id="conn-text">已连接</span></span>
+            <span>总 Spot: <span class="val" id="total-spots">0</span></span>
+            <span>运行: <span class="val" id="uptime">0h 0m</span></span>
+        </div>
+    </div>
+    
+    <!-- Main Layout -->
+    <div class="layout">
+        <!-- Left Column -->
+        <div class="column column-left" id="col-left">
             <!-- 太阳数据 -->
-            <div class="panel-section">
-                <div class="panel-title">☀️ 太阳数据 <span id="solar-condition" style="font-size:11px;padding:1px 6px;border-radius:4px;margin-left:6px;background:rgba(255,255,255,0.1);">---</span></div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-                    <div class="solar-item">
-                        <div style="font-size:10px;color:#666;">SFI</div>
-                        <div style="font-size:16px;font-weight:bold;color:#fff;" id="solar-sfi">-</div>
-                    </div>
-                    <div class="solar-item">
-                        <div style="font-size:10px;color:#666;">SSN</div>
-                        <div style="font-size:16px;font-weight:bold;color:#fff;" id="solar-sn">-</div>
-                    </div>
-                    <div class="solar-item">
-                        <div style="font-size:10px;color:#666;">K 指数</div>
-                        <div style="font-size:16px;font-weight:bold;color:#fff;" id="solar-k">-</div>
-                    </div>
-                    <div class="solar-item">
-                        <div style="font-size:10px;color:#666;">A 指数</div>
-                        <div style="font-size:16px;font-weight:bold;color:#fff;" id="solar-a">-</div>
-                    </div>
+            <div class="card" id="card-solar">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>☀️ 太阳数据</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-solar')"></button>
                 </div>
-                
-                <!-- 传播预测 -->
-                <div style="margin-top:12px;padding:8px;background:rgba(255,255,255,0.04);border-radius:4px;">
-                    <div style="font-size:11px;color:#fff;margin-bottom:6px;">📡 HF 传播预测 <span style="font-size:10px;color:#666;cursor:pointer;" onclick="loadPropagation()">刷新</span></div>
-                    <div id="propagation-container" style="max-height:140px;overflow-y:auto;">
-                        <div style="font-size:12px;color:#666;text-align:center;padding:8px;">加载中...</div>
-                    </div>
-                </div>
-                
-                <!-- 波段趋势 -->
-                <div style="margin-top:12px;padding:8px;background:rgba(255,255,255,0.04);border-radius:4px;">
-                    <div style="font-size:11px;color:#fff;margin-bottom:6px;">📈 波段趋势 <span style="font-size:10px;color:#666;cursor:pointer;" onclick="loadTrends()">刷新</span></div>
-                    <div id="trend-container" style="max-height:160px;overflow-y:auto;">
-                        <div style="font-size:12px;color:#666;text-align:center;padding:8px;">加载中...</div>
-                    </div>
-                </div>
-                
-                <!-- VOACAP 传播预测 -->
-                <div style="margin-top:12px;padding:8px;background:rgba(255,255,255,0.04);border-radius:4px;">
-                    <div style="font-size:11px;color:#fff;margin-bottom:6px;">📡 VOACAP 传播预测 <span style="font-size:10px;color:#666;cursor:pointer;" onclick="loadVOACAP()">刷新</span></div>
-                    <div id="voacap-container" style="max-height:220px;overflow-y:auto;">
-                        <div style="font-size:12px;color:#666;text-align:center;padding:8px;">加载中...</div>
-                    </div>
-                </div>
-                
-                <!-- 波段开放预测 -->
-                <div style="margin-top:12px;padding:8px;background:rgba(255,255,255,0.04);border-radius:4px;">
-                    <div style="font-size:11px;color:#fff;margin-bottom:6px;">⏰ 波段开放预测 <span style="font-size:10px;color:#666;cursor:pointer;" onclick="loadBandOpening()">刷新</span></div>
-                    <div id="band-opening-container" style="max-height:240px;overflow-y:auto;">
-                        <div style="font-size:12px;color:#666;text-align:center;padding:8px;">加载中...</div>
+                <div class="card-body">
+                    <div class="solar-grid">
+                        <div class="solar-item"><div class="label">SFI</div><div class="value" id="solar-sfi">--</div></div>
+                        <div class="solar-item"><div class="label">SSN</div><div class="value" id="solar-ssn">--</div></div>
+                        <div class="solar-item"><div class="label">K 指数</div><div class="value" id="solar-k">--</div></div>
+                        <div class="solar-item"><div class="label">A 指数</div><div class="value" id="solar-a">--</div></div>
                     </div>
                 </div>
             </div>
             
             <!-- 系统状态 -->
-            <div class="panel-section">
-                <div class="panel-title">🔌 系统状态 <button id="heatmap-btn" onclick="toggleHeatmap()" style="float:right;background:rgba(255,87,51,0.3);border:1px solid #FF5733;color:#FF5733;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">🔥 热点图</button> <button id="grayline-btn" onclick="toggleGrayline()" style="float:right;background:rgba(255,215,0,0.3);border:1px solid #FFD700;color:#FFD700;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;margin-right:4px;">🌙 灰线</button></div>
-                <div class="row">
-                    <span><span class="dot dot-wait" id="conn-dot"></span>WebSocket</span>
-                    <span class="val" id="conn-text">连接中</span>
+            <div class="card" id="card-system">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>📊 系统状态</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-system')"></button>
                 </div>
-                <div class="row"><span>Spot 总数</span><span class="val" id="total-spots">0</span></div>
-                <div class="row"><span>活跃波段</span><span class="val" id="active-bands">-</span></div>
-                <div class="row">
-                    <span>🔔 Web Push</span>
-                    <span class="val" id="push-status" style="font-size:11px;cursor:pointer;" onclick="togglePush()">未开启</span>
-                    <button id="push-toggle-btn" onclick="togglePush()" style="margin-left:4px;background:rgba(233,69,96,0.3);border:1px solid #e94560;color:#e94560;border-radius:4px;padding:1px 6px;font-size:10px;cursor:pointer;">开启</button>
+                <div class="card-body">
+                    <div class="row"><span>Cluster</span><span class="val" id="cluster-status">--</span></div>
+                    <div class="row"><span>PSKReporter</span><span class="val" id="psk-status">--</span></div>
+                    <div class="row"><span>Spot 缓存</span><span class="val" id="cache-count">0</span></div>
+                    <div class="row"><span>活跃波段</span><span class="val" id="active-bands">0</span></div>
                 </div>
             </div>
             
             <!-- 我的台站 -->
-            <div class="panel-section">
-                <div class="panel-title">📡 我的台站 <button onclick="openStationEdit()" style="float:right;background:rgba(233,69,96,0.3);border:1px solid #e94560;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">编辑</button></div>
-                <div class="row"><span>呼号</span><span class="val" id="my-callsign">加载中...</span></div>
-                <div class="row"><span>Grid</span><span class="val" id="my-grid">加载中...</span></div>
-                <div class="row"><span>位置</span><span class="val" id="my-power">加载中...</span></div>
+            <div class="card" id="card-station">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>📡 我的台站</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-station')"></button>
+                </div>
+                <div class="card-body">
+                    <div class="row"><span>呼号</span><span class="val" id="st-call">BG2ENW</span></div>
+                    <div class="row"><span>Grid</span><span class="val" id="st-grid">--</span></div>
+                    <div class="row"><span>功率</span><span class="val" id="st-power">--</span></div>
+                    <div class="row"><span>天线</span><span class="val" id="st-antenna">--</span></div>
+                    <button class="time-btn" onclick="editStation()" style="margin-top:6px;width:100%;">✏️ 编辑台站</button>
+                </div>
             </div>
             
             <!-- 关注列表 -->
-            <div class="panel-section">
-                <div class="panel-title">🎯 关注列表 <button onclick="openWatchlistModal()" style="float:right;background:rgba(76,175,80,0.3);border:1px solid #4CAF50;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">+ 添加</button></div>
-                <div id="watchlist-container" style="max-height:200px;overflow-y:auto;">
-                    <div style="font-size:12px;color:#666;text-align:center;padding:12px;">加载中...</div>
+            <div class="card" id="card-watchlist">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>🎯 关注列表</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-watchlist')"></button>
                 </div>
-                <div style="font-size:11px;color:#666;margin-top:6px;">支持: 呼号、DXCC、前缀、波段、模式</div>
+                <div class="card-body">
+                    <div id="watchlist-container">
+                        <div class="watchlist-item" style="color:#888;">加载中...</div>
+                    </div>
+                    <button class="time-btn" onclick="openWatchlistModal()" style="margin-top:6px;width:100%;">+ 添加关注</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Column -->
+        <div class="column-map">
+            <div id="dx-map"></div>
+            <div style="position:absolute;bottom:8px;left:8px;display:flex;gap:4px;z-index:999;">
+                <button class="time-btn" onclick="setTimeFilter(15)">15m</button>
+                <button class="time-btn" onclick="setTimeFilter(30)">30m</button>
+                <button class="time-btn" onclick="setTimeFilter(60)">1h</button>
+                <button class="time-btn" onclick="setTimeFilter(240)">4h</button>
+                <button class="time-btn active" onclick="setTimeFilter(0)">全部</button>
+            </div>
+            <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:999;">
+                <button class="time-btn" id="btn-heat" onclick="toggleHeatmap()">🔥 热力</button>
+                <button class="time-btn" id="btn-gray" onclick="toggleGrayline()">🌑 灰线</button>
+            </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div class="column column-right" id="col-right">
+            <!-- HF 传播 -->
+            <div class="card" id="card-propagation">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>📈 HF 传播</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-propagation')"></button>
+                </div>
+                <div class="card-body" id="prop-container">
+                    <div style="color:#888;font-size:11px;">加载中...</div>
+                </div>
+            </div>
+            
+            <!-- 波段趋势 -->
+            <div class="card" id="card-trends">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>📊 波段趋势</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-trends')"></button>
+                </div>
+                <div class="card-body" id="trends-container">
+                    <div style="color:#888;font-size:11px;">加载中...</div>
+                </div>
+            </div>
+            
+            <!-- 预警 -->
+            <div class="card" id="card-alerts">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>🔔 预警</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-alerts')"></button>
+                </div>
+                <div class="card-body" id="alerts-container" style="max-height:200px;overflow-y:auto;">
+                    <div style="color:#888;font-size:11px;">暂无预警</div>
+                </div>
             </div>
             
             <!-- 推荐机会 -->
-            <div class="panel-section">
-                <div class="panel-title">🎯 推荐机会 <span id="opportunity-count" style="background:#4CAF50;color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:4px;">0</span> <span style="font-size:10px;color:#666;cursor:pointer;float:right;" onclick="loadOpportunities()">刷新</span></div>
-                <div id="opportunities-container" style="max-height:240px;overflow-y:auto;">
-                    <div style="font-size:12px;color:#666;text-align:center;padding:12px;">加载中...</div>
+            <div class="card" id="card-opps">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>💡 推荐机会</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-opps')"></button>
+                </div>
+                <div class="card-body" id="opps-container" style="max-height:180px;overflow-y:auto;">
+                    <div style="color:#888;font-size:11px;">暂无推荐</div>
                 </div>
             </div>
             
-            <!-- 预警列表 -->
-            <div class="panel-section">
-                <div class="panel-title">🔔 预警 <span id="alert-count" style="background:#e94560;color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:4px;">0</span>
-                    <span style="float:right;display:flex;gap:4px;align-items:center;">
-                        <button onclick="markAllAlertsRead()" style="background:rgba(76,175,80,0.2);border:1px solid #4CAF50;color:#4CAF50;border-radius:3px;padding:1px 6px;font-size:10px;cursor:pointer;" title="全部已读">✓已读</button>
-                        <button onclick="clearAllAlerts()" style="background:rgba(244,67,54,0.2);border:1px solid #f44336;color:#f44336;border-radius:3px;padding:1px 6px;font-size:10px;cursor:pointer;" title="清空全部">✕清空</button>
-                    </span>
+            <!-- 波段开放 -->
+            <div class="card" id="card-bandopening">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>⏰ 波段开放</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-bandopening')"></button>
                 </div>
-                <!-- 筛选按钮 -->
-                <div style="display:flex;gap:4px;margin-bottom:8px;">
-                    <button class="alert-filter-btn" data-priority="urgent" onclick="setAlertFilter('urgent')" style="padding:2px 8px;font-size:10px;border:1px solid #f44336;background:rgba(244,67,54,0.1);color:#f44336;border-radius:4px;cursor:pointer;">🔴紧急</button>
-                    <button class="alert-filter-btn" data-priority="important" onclick="setAlertFilter('important')" style="padding:2px 8px;font-size:10px;border:1px solid #FF9800;background:rgba(255,152,0,0.1);color:#FF9800;border-radius:4px;cursor:pointer;">🟡重要</button>
-                    <button class="alert-filter-btn" data-priority="normal" onclick="setAlertFilter('normal')" style="padding:2px 8px;font-size:10px;border:1px solid #4CAF50;background:rgba(76,175,80,0.1);color:#4CAF50;border-radius:4px;cursor:pointer;">🟢普通</button>
-                    <button onclick="toggleUnreadOnly()" style="padding:2px 8px;font-size:10px;border:1px solid #666;background:rgba(255,255,255,0.05);color:#aaa;border-radius:4px;cursor:pointer;margin-left:auto;">仅未读</button>
-                </div>
-                <div id="alert-stats" style="margin-bottom:8px;"></div>
-                <div id="alert-container" style="max-height:300px;overflow-y:auto;">
-                    <div style="font-size:12px;color:#666;text-align:center;padding:12px;">加载中...</div>
-                </div>
-                <!-- 静默管理 -->
-                <div style="margin-top:8px;border-top:1px solid #0f3460;padding-top:8px;">
-                    <div style="font-size:11px;color:#888;margin-bottom:4px;">🔇 静默呼号</div>
-                    <div id="silenced-container" style="max-height:100px;overflow-y:auto;">
-                        <div style="font-size:11px;color:#666;text-align:center;padding:4px;">无静默呼号</div>
-                    </div>
+                <div class="card-body" id="bandopening-container" style="overflow-x:auto;">
+                    <div style="color:#888;font-size:11px;">加载中...</div>
                 </div>
             </div>
             
-            <!-- 日志上传 -->
-            <div class="panel-section">
-                <div class="panel-title">📁 日志上传</div>
-                <div style="display:flex;gap:8px;margin-bottom:8px;">
-                    <input type="file" id="log-upload-input" accept=".adif,.csv" style="display:none;">
-                    <button onclick="document.getElementById('log-upload-input').click()" style="flex:1;padding:8px;background:#2196F3;border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:12px;">选择文件</button>
-                    <button onclick="handleLogUpload()" style="flex:1;padding:8px;background:#4CAF50;border:none;color:#fff;border-radius:6px;cursor:pointer;font-size:12px;">上传</button>
+            <!-- VOACAP -->
+            <div class="card" id="card-voacap">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>🌍 VOACAP</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-voacap')"></button>
                 </div>
-                <div id="upload-status" style="font-size:11px;color:#666;text-align:center;margin-bottom:8px;">支持 .adif / .csv 格式</div>
-                <div id="logs-container" style="max-height:200px;overflow-y:auto;">
-                    <div style="font-size:12px;color:#666;text-align:center;padding:12px;">加载中...</div>
-                </div>
-                <!-- 评分面板 -->
-                <div style="margin-top:8px;padding:8px;background:rgba(255,255,255,0.04);border-radius:4px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div style="font-size:11px;color:#fff;">📈 缺失DXCC评分</div>
-                        <span style="font-size:10px;color:#666;cursor:pointer;" onclick="loadMissingDXCCScores()">刷新</span>
-                    </div>
-                    <div id="scores-container" style="max-height:180px;overflow-y:auto;">
-                        <div style="font-size:12px;color:#666;text-align:center;padding:12px;">暂无缺失DXCC数据</div>
-                    </div>
-                </div>
-                <!-- 波段分布图表 -->
-                <div style="margin-top:8px;padding:8px;background:rgba(255,255,255,0.04);border-radius:4px;">
-                    <div style="font-size:11px;color:#fff;margin-bottom:4px;">波段分布</div>
-                    <div style="height:140px;">
-                        <canvas id="band-chart-canvas"></canvas>
-                    </div>
+                <div class="card-body" id="voacap-container">
+                    <div style="color:#888;font-size:11px;">加载中...</div>
                 </div>
             </div>
             
-            <!-- 时间筛选 -->
-            <div class="panel-section">
-                <div class="panel-title">🕐 地图数据范围</div>
-                <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                    <button class="time-btn" data-minutes="15" onclick="setTimeFilter(15)">15分钟</button>
-                    <button class="time-btn" data-minutes="30" onclick="setTimeFilter(30)">30分钟</button>
-                    <button class="time-btn" data-minutes="60" onclick="setTimeFilter(60)">1小时</button>
-                    <button class="time-btn" data-minutes="120" onclick="setTimeFilter(120)">2小时</button>
-                    <button class="time-btn active" data-minutes="240" onclick="setTimeFilter(240)">4小时</button>
-                    <button class="time-btn" data-minutes="0" onclick="setTimeFilter(0)">全部</button>
+            <!-- 日志 -->
+            <div class="card" id="card-logs">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>📁 日志</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-logs')"></button>
                 </div>
-                <div style="font-size:11px;color:#666;margin-top:8px;">点击上方波段栏可筛选波段</div>
-                <div style="font-size:11px;color:#888;margin-top:4px;">当前显示: <span id="visible-count" style="color:#4CAF50;font-weight:bold;">0</span> 个电台</div>
+                <div class="card-body">
+                    <div class="upload-area" id="upload-area">📄 拖拽上传 ADIF/CSV</div>
+                    <div id="logs-container" style="margin-top:8px;"></div>
+                    <div id="band-chart-container" style="margin-top:8px;height:150px;">
+                        <canvas id="band-chart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     
-    <!-- 台站配置模态框 -->
-    <div id="station-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:2000;align-items:center;justify-content:center;">
-        <div style="background:#16213e;border:1px solid #0f3460;border-radius:12px;padding:20px;width:400px;max-width:90%;">
-            <div style="font-size:16px;font-weight:bold;color:#e94560;margin-bottom:16px;border-bottom:1px solid #0f3460;padding-bottom:8px;">📡 台站配置</div>
-            
-            <div style="margin-bottom:12px;">
-                <label style="font-size:12px;color:#888;">呼号</label>
-                <input type="text" id="edit-callsign" placeholder="例如: BG2ENW" style="width:96%;padding:8px;background:#0f3460;border:1px solid #2a4a6a;color:#fff;border-radius:4px;margin-top:4px;">
+    <script src="js/leaflet.js?v=1.5"></script>
+    <script src="js/leaflet-heat.js?v=1.5"></script>
+    <script src="js/socket.io.min.js?v=1.5"></script>
+    <script src="js/app.js?v=1.5"></script>
+    <script src="js/alerts.js?v=1.5"></script>
+    <script src="js/score_display.js?v=1.5"></script>
+    <script src="js/push.js?v=1.5"></script>
+    
+    <!-- 台站编辑 Modal -->
+    <div class="modal-overlay" id="station-modal">
+        <div class="modal-box">
+            <div class="modal-title">✏️ 编辑台站配置</div>
+            <div class="modal-field">
+                <label>呼号 Callsign</label>
+                <input type="text" id="edit-callsign" placeholder="例如: BG2ENW">
             </div>
-            
-            <div style="display:flex;gap:8px;margin-bottom:12px;">
-                <div style="flex:1;">
-                    <label style="font-size:12px;color:#888;">Grid</label>
-                    <input type="text" id="edit-grid" placeholder="例如: PN35HS" style="width:100%;padding:8px;background:#0f3460;border:1px solid #2a4a6a;color:#fff;border-radius:4px;margin-top:4px;">
-                </div>
-                <div style="flex:1;">
-                    <label style="font-size:12px;color:#888;">功率(W)</label>
-                    <input type="number" id="edit-power" placeholder="100" style="width:100%;padding:8px;background:#0f3460;border:1px solid #2a4a6a;color:#fff;border-radius:4px;margin-top:4px;">
-                </div>
+            <div class="modal-field">
+                <label>Grid 网格</label>
+                <input type="text" id="edit-grid" placeholder="例如: PN35HS">
             </div>
-            
-            <div style="margin-bottom:12px;">
-                <label style="font-size:12px;color:#888;">天线</label>
-                <input type="text" id="edit-antenna" placeholder="例如: 3 Element Yagi" style="width:96%;padding:8px;background:#0f3460;border:1px solid #2a4a6a;color:#fff;border-radius:4px;margin-top:4px;">
+            <div class="modal-field">
+                <label>功率 Power (W)</label>
+                <input type="number" id="edit-power" placeholder="100">
             </div>
-            
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
-                <button onclick="closeStationModal()" style="padding:8px 16px;background:#2a4a6a;border:none;color:#fff;border-radius:6px;cursor:pointer;">取消</button>
-                <button onclick="saveStationConfig()" style="padding:8px 16px;background:#e94560;border:none;color:#fff;border-radius:6px;cursor:pointer;">保存</button>
+            <div class="modal-field">
+                <label>天线 Antenna</label>
+                <input type="text" id="edit-antenna" placeholder="例如: DP-80m">
             </div>
-            
-            <div id="station-save-status" style="font-size:12px;color:#4CAF50;text-align:center;margin-top:8px;"></div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeStationModal()">取消</button>
+                <button class="btn-primary" onclick="saveStationConfig()">保存</button>
+            </div>
+            <div class="modal-status" id="station-save-status"></div>
         </div>
     </div>
     
-    <!-- 关注列表添加模态框 -->
-    <div id="watchlist-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:2000;align-items:center;justify-content:center;">
-        <div style="background:#16213e;border:1px solid #0f3460;border-radius:12px;padding:20px;width:380px;max-width:90%;">
-            <div style="font-size:16px;font-weight:bold;color:#e94560;margin-bottom:16px;border-bottom:1px solid #0f3460;padding-bottom:8px;">🎯 添加关注</div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:12px;color:#888;">类型</label>
-                <select id="wl-type" style="width:100%;padding:8px;background:#0f3460;border:1px solid #2a4a6a;color:#fff;border-radius:4px;margin-top:4px;">
-                    <option value="callsign">呼号（如 JA1AAA）</option>
-                    <option value="prefix">呼号前缀（如 JA）</option>
-                    <option value="dxcc">DXCC实体（如 Japan）</option>
-                    <option value="band">波段（如 20m）</option>
-                    <option value="mode">模式（如 FT8）</option>
+    <!-- 关注列表 Modal -->
+    <div class="modal-overlay" id="watchlist-modal">
+        <div class="modal-box">
+            <div class="modal-title">🎯 添加关注项</div>
+            <div class="modal-field">
+                <label>类型</label>
+                <select id="wl-type">
+                    <option value="callsign">呼号 Callsign</option>
+                    <option value="prefix">呼号前缀 Prefix</option>
+                    <option value="dxcc">DXCC 实体</option>
+                    <option value="band">波段 Band</option>
+                    <option value="mode">模式 Mode</option>
                 </select>
             </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:12px;color:#888;">目标值</label>
-                <input type="text" id="wl-value" placeholder="根据类型填写" style="width:96%;padding:8px;background:#0f3460;border:1px solid #2a4a6a;color:#fff;border-radius:4px;margin-top:4px;">
+            <div class="modal-field">
+                <label>目标值</label>
+                <input type="text" id="wl-value" placeholder="例如: JA1AAA, VK, 20m, FT8">
             </div>
-            <div style="display:flex;gap:8px;margin-bottom:12px;">
-                <div style="flex:1;">
-                    <label style="font-size:12px;color:#888;">限定波段（可选）</label>
-                    <select id="wl-band" style="width:100%;padding:6px;background:#0f3460;border:1px solid #2a4a6a;color:#fff;border-radius:4px;margin-top:4px;">
-                        <option value="">不限</option>
-                        <option value="160m">160m</option><option value="80m">80m</option>
-                        <option value="40m">40m</option><option value="30m">30m</option>
-                        <option value="20m">20m</option><option value="17m">17m</option>
-                        <option value="15m">15m</option><option value="10m">10m</option>
-                        <option value="6m">6m</option><option value="2m">2m</option>
-                    </select>
-                </div>
-                <div style="flex:1;">
-                    <label style="font-size:12px;color:#888;">限定模式（可选）</label>
-                    <select id="wl-mode" style="width:100%;padding:6px;background:#0f3460;border:1px solid #2a4a6a;color:#fff;border-radius:4px;margin-top:4px;">
-                        <option value="">不限</option>
-                        <option value="CW">CW</option><option value="SSB">SSB</option>
-                        <option value="FT8">FT8</option><option value="FT4">FT4</option>
-                        <option value="RTTY">RTTY</option><option value="FM">FM</option>
-                    </select>
-                </div>
+            <div class="modal-field">
+                <label>偏好波段 (可选)</label>
+                <input type="text" id="wl-band" placeholder="例如: 20m, 40m">
             </div>
-            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
-                <button onclick="closeWatchlistModal()" style="padding:8px 16px;background:#2a4a6a;border:none;color:#fff;border-radius:6px;cursor:pointer;">取消</button>
-                <button onclick="addWatchlistItem()" style="padding:8px 16px;background:#4CAF50;border:none;color:#fff;border-radius:6px;cursor:pointer;">添加</button>
+            <div class="modal-field">
+                <label>偏好模式 (可选)</label>
+                <input type="text" id="wl-mode" placeholder="例如: FT8, CW">
             </div>
-            <div id="wl-status" style="font-size:12px;text-align:center;margin-top:8px;"></div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeWatchlistModal()">取消</button>
+                <button class="btn-primary" onclick="addWatchlistItem()">添加</button>
+            </div>
+            <div class="modal-status" id="wl-status"></div>
         </div>
     </div>
-
-    <script src="js/leaflet.js?v=1.3"></script>
-    <script src="js/leaflet-heat.js?v=1.3"></script>
-    <script src="js/socket.io.min.js?v=1.2"></script>
-    <script src="js/app.js?v=1.2"></script>
-    <script src="js/alerts.js?v=1.2"></script>
-    <script src="js/score_display.js?v=1.0"></script>
-    <script src="js/push.js?v=1.0"></script>
 </body>
 </html>
-
