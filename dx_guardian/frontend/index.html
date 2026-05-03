@@ -23,6 +23,18 @@
             --border-color: rgba(255,255,255,0.08);
             --border-hover: rgba(255,255,255,0.15);
         }
+        [data-theme="light"] {
+            --bg-primary: #f5f7fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #ebeef5;
+            --bg-card: #ffffff;
+            --accent-primary: #409EFF;
+            --accent-secondary: #67C23A;
+            --text-primary: #303133;
+            --text-secondary: #606266;
+            --border-color: #dcdfe6;
+            --border-hover: #c0c4cc;
+        }
         [data-theme="ocean"] {
             --bg-primary: #0a1628;
             --bg-secondary: #1a3a5c;
@@ -415,8 +427,12 @@
                 </button>
                 <div class="theme-dropdown" id="theme-dropdown">
                     <div class="theme-option active" data-theme="default" onclick="setTheme('default')">
-                        <div class="theme-preview" style="background: linear-gradient(135deg, #e94560 0%, #16213e 100%);"></div>
+                        <div class="theme-preview" style="background: linear-gradient(135deg, #e94560 0%, #0f0f1a 100%);"></div>
                         <span>默认（深空）</span>
+                    </div>
+                    <div class="theme-option" data-theme="light" onclick="setTheme('light')">
+                        <div class="theme-preview" style="background: linear-gradient(135deg, #409EFF 0%, #f5f7fa 100%);"></div>
+                        <span>浅色（明亮）</span>
                     </div>
                     <div class="theme-option" data-theme="ocean" onclick="setTheme('ocean')">
                         <div class="theme-preview" style="background: linear-gradient(135deg, #00d9ff 0%, #0a1628 100%);"></div>
