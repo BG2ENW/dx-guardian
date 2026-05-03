@@ -283,6 +283,55 @@ const MAX_HISTORY = 10000;
 
 const startTime = Date.now();
 
+// ========== 主题配色管理 ==========
+function initTheme() {
+    const saved = localStorage.getItem('dx-theme');
+    if (saved) {
+        applyTheme(saved);
+    }
+}
+
+function toggleThemeDropdown() {
+    const dropdown = document.getElementById('theme-dropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+    }
+}
+
+function setTheme(themeName) {
+    applyTheme(themeName);
+    localStorage.setItem('dx-theme', themeName);
+    const dropdown = document.getElementById('theme-dropdown');
+    if (dropdown) dropdown.classList.remove('show');
+    updateThemeUI(themeName);
+}
+
+function applyTheme(themeName) {
+    if (themeName === 'default') {
+        document.documentElement.removeAttribute('data-theme');
+    } else {
+        document.documentElement.setAttribute('data-theme', themeName);
+    }
+    updateThemeUI(themeName);
+}
+
+function updateThemeUI(themeName) {
+    document.querySelectorAll('.theme-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.theme === themeName);
+    });
+}
+
+function closeThemeDropdown() {
+    const dropdown = document.getElementById('theme-dropdown');
+    if (dropdown) dropdown.classList.remove('show');
+}
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.theme-selector')) {
+        closeThemeDropdown();
+    }
+});
+
 function updateUptime() {
     const elapsed = Math.floor((Date.now() - startTime) / 60000);
     const el = document.getElementById('uptime');
@@ -354,6 +403,7 @@ function toggleCard(id) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     loadStationConfig();
     loadWatchlist();
     loadSolarData();

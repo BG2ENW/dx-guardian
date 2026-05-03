@@ -10,49 +10,111 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
+    <style>
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent-primary: #e94560;
+            --accent-secondary: #4CAF50;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaa;
+            --border-color: rgba(255,255,255,0.08);
+            --border-hover: rgba(255,255,255,0.15);
+        }
+        [data-theme="ocean"] {
+            --bg-primary: #0a1628;
+            --bg-secondary: #1a3a5c;
+            --bg-tertiary: #0d2137;
+            --bg-card: #1a3a5c;
+            --accent-primary: #00d9ff;
+            --accent-secondary: #00ff88;
+            --text-primary: #e0f0ff;
+            --text-secondary: #a0c0e0;
+            --border-color: rgba(0,217,255,0.15);
+            --border-hover: rgba(0,217,255,0.3);
+        }
+        [data-theme="forest"] {
+            --bg-primary: #0d1a0f;
+            --bg-secondary: #1a3a1f;
+            --bg-tertiary: #0f2913;
+            --bg-card: #1a3a1f;
+            --accent-primary: #4CAF50;
+            --accent-secondary: #8BC34A;
+            --text-primary: #e0ffe0;
+            --text-secondary: #a0d0a0;
+            --border-color: rgba(76,175,80,0.15);
+            --border-hover: rgba(76,175,80,0.3);
+        }
+        [data-theme="sunset"] {
+            --bg-primary: #1a0f0f;
+            --bg-secondary: #3a1a1a;
+            --bg-tertiary: #290f0f;
+            --bg-card: #3a1a1a;
+            --accent-primary: #ff6b6b;
+            --accent-secondary: #ffa502;
+            --text-primary: #ffe0e0;
+            --text-secondary: #e0a0a0;
+            --border-color: rgba(255,107,107,0.15);
+            --border-hover: rgba(255,107,107,0.3);
+        }
+        [data-theme="purple"] {
+            --bg-primary: #1a0f28;
+            --bg-secondary: #3a1a5c;
+            --bg-tertiary: #290f3a;
+            --bg-card: #3a1a5c;
+            --accent-primary: #d580ff;
+            --accent-secondary: #ff80bf;
+            --text-primary: #f0e0ff;
+            --text-secondary: #d0a0e0;
+            --border-color: rgba(213,128,255,0.15);
+            --border-hover: rgba(213,128,255,0.3);
+        }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #0f0f1a;
-            color: #e0e0e0;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             overflow: hidden;
             height: 100vh;
+            transition: background 0.3s, color 0.3s;
         }
         
         /* ===== Top Bar ===== */
         .topbar {
             height: 48px;
-            background: linear-gradient(90deg, #1a1a2e 0%, #16213e 100%);
-            border-bottom: 2px solid #e94560;
+            background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            border-bottom: 2px solid var(--accent-primary);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 16px;
             z-index: 1000;
+            transition: all 0.3s;
         }
         .topbar-left { display: flex; align-items: center; gap: 16px; }
-        .topbar-logo { font-size: 16px; font-weight: bold; color: #e94560; }
-        .topbar-stats { display: flex; gap: 12px; font-size: 12px; color: #aaa; }
+        .topbar-logo { font-size: 16px; font-weight: bold; color: var(--accent-primary); transition: color 0.3s; }
+        .topbar-stats { display: flex; gap: 12px; font-size: 12px; color: var(--text-secondary); }
         .topbar-stats span { display: flex; align-items: center; gap: 4px; }
-        .topbar-stats .val { color: #fff; font-weight: bold; }
+        .topbar-stats .val { color: var(--text-primary); font-weight: bold; }
         .dot-on { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; box-shadow: 0 0 6px #4CAF50; }
         .dot-off { width: 8px; height: 8px; border-radius: 50%; background: #f44336; }
         
         /* ===== Band Bar (内嵌到 Top Bar) ===== */
-        .band-bar {
-            display: flex; gap: 4px; align-items: center;
-        }
+        .band-bar { display: flex; gap: 4px; align-items: center; }
         .band-item {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             min-width: 48px; padding: 2px 6px;
             background: rgba(255,255,255,0.08); border-radius: 4px;
-            font-size: 10px; color: #aaa; cursor: pointer;
+            font-size: 10px; color: var(--text-secondary); cursor: pointer;
             transition: all 0.2s; border: 1px solid transparent;
         }
         .band-item:hover { background: rgba(255,255,255,0.15); }
-        .band-item.active { border-color: #e94560; background: rgba(233,69,96,0.2); color: #fff; }
-        .band-item.filter-active { border-color: #4CAF50; background: rgba(76,175,80,0.2); color: #fff; }
-        .band-count { font-size: 13px; font-weight: bold; color: #e94560; }
+        .band-item.active { border-color: var(--accent-primary); background: var(--accent-primary, rgba(233,69,96,0.2)); color: var(--text-primary); }
+        .band-item.filter-active { border-color: var(--accent-secondary); background: var(--accent-secondary, rgba(76,175,80,0.2)); color: var(--text-primary); }
+        .band-count { font-size: 13px; font-weight: bold; color: var(--accent-primary); transition: color 0.3s; }
         
         /* ===== Main Layout ===== */
         .layout {
@@ -66,21 +128,22 @@
         .column {
             overflow-y: auto;
             padding: 8px;
-            background: #0f0f1a;
+            background: var(--bg-primary);
+            transition: background 0.3s;
         }
-        .column-left { border-right: 1px solid rgba(255,255,255,0.05); }
-        .column-right { border-left: 1px solid rgba(255,255,255,0.05); }
+        .column-left { border-right: 1px solid var(--border-color); }
+        .column-right { border-left: 1px solid var(--border-color); }
         
         /* 滚动条样式 */
         .column::-webkit-scrollbar { width: 6px; }
         .column::-webkit-scrollbar-track { background: transparent; }
-        .column::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-        .column::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        .column::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        .column::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
         
         /* ===== Map Column ===== */
         .column-map {
             position: relative;
-            background: #0a0a1a;
+            background: var(--bg-primary);
             display: flex;
             flex-direction: column;
         }
@@ -88,16 +151,16 @@
         
         /* ===== Draggable Cards ===== */
         .card {
-            background: #16213e;
-            border: 1px solid rgba(255,255,255,0.08);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             margin-bottom: 8px;
             overflow: hidden;
-            transition: box-shadow 0.2s, transform 0.2s;
+            transition: box-shadow 0.2s, transform 0.2s, background 0.3s, border-color 0.3s;
             cursor: default;
         }
         .card:hover {
-            border-color: rgba(255,255,255,0.15);
+            border-color: var(--border-hover);
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .card-header {
@@ -105,14 +168,15 @@
             align-items: center;
             justify-content: space-between;
             padding: 8px 12px;
-            background: rgba(233,69,96,0.1);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid var(--border-color);
             font-size: 12px;
             font-weight: bold;
-            color: #e94560;
+            color: var(--accent-primary);
             cursor: move;
+            transition: all 0.3s;
         }
-        .card-header:hover { background: rgba(233,69,96,0.15); }
+        .card-header:hover { background: rgba(255,255,255,0.08); }
         .card-header .drag-handle { cursor: move; opacity: 0.5; margin-right: 6px; }
         .card-header:hover .drag-handle { opacity: 1; }
         .card-body { padding: 10px 12px; }
@@ -122,10 +186,11 @@
         .collapse-btn {
             background: rgba(255,255,255,0.1);
             border: none;
-            color: #e94560;
+            color: var(--accent-primary);
             width: 20px; height: 20px;
             display: flex; align-items: center; justify-content: center;
             border-radius: 4px; cursor: pointer; font-size: 12px;
+            transition: all 0.3s;
         }
         .collapse-btn:hover { background: rgba(255,255,255,0.2); }
         
@@ -134,13 +199,13 @@
         .sortable-chosen { box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
         
         /* ===== Content Styles ===== */
-        .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: #aaa; }
-        .row .val { color: #fff; font-weight: bold; }
+        .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: var(--text-secondary); }
+        .row .val { color: var(--text-primary); font-weight: bold; }
         
         .solar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
         .solar-item { background: rgba(255,255,255,0.04); padding: 8px; border-radius: 4px; text-align: center; }
-        .solar-item .label { font-size: 9px; color: #888; margin-bottom: 2px; }
-        .solar-item .value { font-size: 16px; font-weight: bold; color: #e94560; }
+        .solar-item .label { font-size: 9px; color: var(--text-secondary); margin-bottom: 2px; }
+        .solar-item .value { font-size: 16px; font-weight: bold; color: var(--accent-primary); transition: color 0.3s; }
         
         .alert-item {
             padding: 6px 8px; background: rgba(255,255,255,0.04); margin-bottom: 4px;
@@ -251,6 +316,14 @@
         .btn-secondary { background: rgba(255,255,255,0.1); color: #aaa; }
         .btn-secondary:hover { background: rgba(255,255,255,0.15); }
         .modal-status { font-size: 12px; margin-top: 8px; min-height: 18px; }
+        
+        /* 配色选择按钮 */
+        .theme-icon {
+            width: 16px; height: 16px;
+            background: linear-gradient(135deg, var(--accent-primary) 50%, var(--accent-secondary) 50%);
+            border-radius: 50%;
+            display: inline-block;
+        }
 
         /* 响应式 */
         @media (max-width: 1024px) {
@@ -269,6 +342,42 @@
             <div class="topbar-logo">📡 DX Guardian</div>
             <div class="band-bar" id="band-bar"></div>
         </div>
+        <div class="topbar-right">
+            <div class="topbar-stats">
+                <span><span class="dot-on" id="conn-dot"></span> <span id="conn-text">已连接</span></span>
+                <span>总 Spot: <span class="val" id="total-spots">0</span></span>
+                <span>运行：<span class="val" id="uptime">0h 0m</span></span>
+            </div>
+            <div class="theme-selector">
+                <button class="theme-btn" onclick="toggleThemeDropdown()">
+                    <span class="theme-icon"></span>
+                    <span>配色</span>
+                </button>
+                <div class="theme-dropdown" id="theme-dropdown">
+                    <div class="theme-option active" data-theme="default" onclick="setTheme('default')">
+                        <div class="theme-preview" style="background: linear-gradient(135deg, #e94560 0%, #16213e 100%);"></div>
+                        <span>默认（深空）</span>
+                    </div>
+                    <div class="theme-option" data-theme="ocean" onclick="setTheme('ocean')">
+                        <div class="theme-preview" style="background: linear-gradient(135deg, #00d9ff 0%, #0a1628 100%);"></div>
+                        <span>海洋（蓝调）</span>
+                    </div>
+                    <div class="theme-option" data-theme="forest" onclick="setTheme('forest')">
+                        <div class="theme-preview" style="background: linear-gradient(135deg, #4CAF50 0%, #0d1a0f 100%);"></div>
+                        <span>森林（绿色）</span>
+                    </div>
+                    <div class="theme-option" data-theme="sunset" onclick="setTheme('sunset')">
+                        <div class="theme-preview" style="background: linear-gradient(135deg, #ff6b6b 0%, #1a0f0f 100%);"></div>
+                        <span>日落（暖色）</span>
+                    </div>
+                    <div class="theme-option" data-theme="purple" onclick="setTheme('purple')">
+                        <div class="theme-preview" style="background: linear-gradient(135deg, #d580ff 0%, #1a0f28 100%);"></div>
+                        <span>紫韵（紫色）</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
         <div class="topbar-stats">
             <span><span class="dot-on" id="conn-dot"></span> <span id="conn-text">已连接</span></span>
             <span>总 Spot: <span class="val" id="total-spots">0</span></span>
