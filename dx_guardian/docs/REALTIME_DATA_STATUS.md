@@ -134,3 +134,31 @@ grep "历史缓存" /tmp/backend.log | tail -20
 ```bash
 curl http://localhost:5000/api/history | python3 -c "import sys,json;print(len(json.load(sys.stdin)['spots']))"
 ```
+
+## 最新更新 (2026-05-03 05:27)
+
+### 修复内容
+- ✅ **推荐机会 API** (`/api/opportunities`) 现在正常工作
+- ✅ 评分系统正确初始化，返回 99 个推荐机会
+- ✅ 趋势 API 添加 `trend_label` 字段
+- ✅ 太阳数据默认值改为合理值 (SFI=100, SN=10, K=2)
+
+### API 测试结果
+```bash
+# 推荐机会
+GET /api/opportunities
+Response: 99 opportunities, top score=94
+
+# 波段趋势
+GET /api/trends
+Response: 5 bands with trend_label (新活跃/上升/下降/稳定)
+
+# 健康状态
+GET /api/health
+Response: cluster_connected=true, history_count=90
+```
+
+### 已知问题
+- 前端仍可能显示数据不完整，需要刷新页面或重启前端开发服务器
+- 部分 API 可能返回英文标签而非中文（如 European Russia）
+

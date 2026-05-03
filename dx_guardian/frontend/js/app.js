@@ -39,6 +39,8 @@ const MY_STATION = {
 let myStationMarker = null;
 let heatLayer = null;
 let showHeatmap = false;
+let gridOverlayLayer = null;
+let showGridOverlay = false;
 
 // === 台站配置管理 ===
 async function loadStationConfig() {
@@ -464,6 +466,13 @@ function initMap() {
             1.0: '#FFD700'
         }
     });
+    
+    // 初始化网格图层（默认隐藏）
+    gridOverlayLayer = L.layerGroup();
+    
+    // 监听地图移动和缩放，动态更新网格
+    map.on('moveend', updateGridOnMove);
+    map.on('zoomend', updateGridOnMove);
 }
 
 // 添加本地台站标记
@@ -519,6 +528,141 @@ function updateHeatmap() {
 let showGrayline = false;
 let graylineLayer = null;
 let graylineUpdateTimer = null;
+
+// ========== Maidenhead Grid 网格显示 ==========
+function toggleGridOverlay() {
+    showGridOverlay = !showGridOverlay;
+    const btn = document.getElementById('btn-grid');
+    
+    if (showGridOverlay) {
+        btn.classList.add('active');
+        renderGridOverlay();
+    } else {
+        btn.classList.remove('active');
+        if (gridOverlayLayer) {
+            map.removeLayer(gridOverlayLayer);
+            gridOverlayLayer.clearLayers();
+        }
+    }
+}
+
+function renderGridOverlay() {
+    if (!gridOverlayLayer) return;
+    
+    gridOverlayLayer.clearLayers();
+    
+    const bounds = map.getBounds();
+    const latBounds = [bounds.getSouth(), bounds.getNorth()];
+    const lonBounds = [bounds.getWest(), bounds.getEast()];
+    
+    // 根据缩放级别决定网格大小
+    const zoom = map.getZoom();
+    let fieldSize = 20; // Field 大小（度数）
+    let subfieldSize = 2; // Square 大小（度数）
+    let showSubfields = zoom >= 6;
+    let showEnhanced = zoom >= 10;
+    
+    if (zoom >= 8) {
+        fieldSize = 10;
+        subfieldSize = 1;
+    }
+    if (zoom >= 10) {
+        fieldSize = 5;
+        subfieldSize = 0.5;
+    }
+    
+    const lines = [];
+    
+    // 绘制 Field 网格（10 度间隔）
+    for (let lon = Math.floor(lonBounds[0] / fieldSize) * fieldSize; 
+         lon <= lonBounds[1]; 
+         lon += fieldSize) {
+        lines.push(L.polyline([[latBounds[0], lon], [latBounds[1], lon]], {
+            color: 'rgba(255, 255, 255, 0.3)',
+            weight: 1,
+            dashArray: '5, 10'
+        }));
+    }
+    
+    for (let lat = Math.floor(latBounds[0] / fieldSize) * fieldSize; 
+         lat <= latBounds[1]; 
+         lat += fieldSize) {
+        lines.push(L.polyline([[lat, lonBounds[0]], [lat, lonBounds[1]]], {
+            color: 'rgba(255, 255, 255, 0.3)',
+            weight: 1,
+            dashArray: '5, 10'
+        }));
+    }
+    
+    // 绘制 Square 网格（2 度间隔，Zoom 6+ 显示）
+    if (showSubfields) {
+        for (let lon = Math.floor(lonBounds[0] / subfieldSize) * subfieldSize; 
+             lon <= lonBounds[1]; 
+             lon += subfieldSize) {
+            lines.push(L.polyline([[latBounds[0], lon], [latBounds[1], lon]], {
+                color: 'rgba(255, 255, 255, 0.15)',
+                weight: 0.5,
+                dashArray: '3, 5'
+            }));
+        }
+        
+        for (let lat = Math.floor(latBounds[0] / subfieldSize) * subfieldSize; 
+             lat <= latBounds[1]; 
+             lat += subfieldSize) {
+            lines.push(L.polyline([[lat, lonBounds[0]], [lat, lonBounds[1]]], {
+                color: 'rgba(255, 255, 255, 0.15)',
+                weight: 0.5,
+                dashArray: '3, 5'
+            }));
+        }
+    }
+    
+    // 在地图中心显示当前 Grid 信息
+    const center = map.getCenter();
+    const gridLabel = calculateMaidenheadGrid(center.lat, center.lng);
+    const centerMarker = L.marker([center.lat, center.lng], {
+        icon: L.divIcon({
+            className: 'grid-label',
+            html: `<div style="background:rgba(0,0,0,0.7);color:#0f0;padding:4px 8px;border-radius:4px;font-size:12px;font-family:monospace;border:1px solid #0f0;">${gridLabel}</div>`,
+            iconSize: [80, 24],
+            iconAnchor: [40, 12]
+        })
+    });
+    
+    lines.forEach(line => gridOverlayLayer.addLayer(line));
+    gridOverlayLayer.addLayer(centerMarker);
+    gridOverlayLayer.addTo(map);
+}
+
+function calculateMaidenheadGrid(lat, lon) {
+    // 计算 Maidenhead Grid _locator（6 位）
+    const fieldLon = Math.floor((lon + 180) / 20);
+    const fieldLat = Math.floor((lat + 90) / 10);
+    
+    const squareLon = Math.floor(((lon + 180) % 20) / 2);
+    const squareLat = Math.floor(((lat + 90) % 10) / 1);
+    
+    const subLon = Math.floor((((lon + 180) % 20) % 2) / 0.08333);
+    const subLat = Math.floor((((lat + 90) % 10) % 1) / 0.04166);
+    
+    const fieldChars = 'ABCDEFGHIJKLMNOPQRSTUVWX';
+    const squareDigits = '0123456789';
+    const subChars = 'abcdefghijklmnopqrstuvwx';
+    
+    return fieldChars[fieldLon] + 
+           fieldChars[fieldLat] + 
+           squareDigits[squareLon] + 
+           squareDigits[squareLat] +
+           subChars[subLon].toUpperCase() +
+           subChars[subLat].toUpperCase();
+}
+
+// 地图移动时更新网格
+function updateGridOnMove() {
+    if (showGridOverlay && gridOverlayLayer) {
+        renderGridOverlay();
+    }
+}
 
 async function toggleGrayline() {
     showGrayline = !showGrayline;
