@@ -725,38 +725,65 @@ def process_spot(line):
 def pskreporter_thread():
     """定时从 PSKReporter 获取全球接收报告（不限定呼号）
     
-    官方API规则：
-    - 查询间隔不少于5分钟
-    - 不带senderCallsign时返回全球最近接收报告
-    - 参数用rptlimit不是limit
-    - 建议加appcontact参数方便管理员联系
-    - flowStartSeconds不能超过-86400(24小时)
+    官方 API 规则：
+    - 查询间隔不少于 5 分钟
+    - 不带 senderCallsign 时返回全球最近接收报告
+    - 参数用 rptlimit 不是 limit
+    - 建议加 appcontact 参数方便管理员联系
+    - flowStartSeconds不能超过 -86400(24 小时)
     """
-    import urllib.request
-    import urllib.error
     import xml.etree.ElementTree as ET
+    try:
+        import cloudscraper
+        scraper = cloudscraper.create_scraper()
+        USE_SCRAPER = True
+    except ImportError:
+        import urllib.request
+        import urllib.error
+        USE_SCRAPER = False
 
     time.sleep(15)  # 等待启动完成
-    log('[PSKReporter] 全球数据源启动（5分钟间隔，遵守官方限制）')
+    log('[PSKReporter] 全球数据源启动（5 分钟间隔，遵守官方限制）')
 
     while True:
         try:
-            # 全球查询：不带senderCallsign，获取所有接收报告
-            # flowStartSeconds=-300: 最近5分钟的数据
+            # 全球查询：不带 senderCallsign，获取所有接收报告
+            # flowStartSeconds=-300: 最近 5 分钟的数据
             # noactive=1: 不返回活跃监听台列表（减少数据量）
             # ronly=1: 只返回接收报告
-            # rptlimit=100: 官方默认100条
+            # rptlimit=100: 官方默认 100 条
             # appcontact: 官方建议添加，方便管理员联系
             url = (f'{PSKREPORTER_URL}?flowStartSeconds=-300'
                    f'&noactive=1&rronly=1&rptlimit={PSKREPORTER_LIMIT}'
                    f'&appcontact=bg2enw@163.com')
-            req = urllib.request.Request(url, headers={'User-Agent': 'DXGuardian/1.0 (BG2ENW)'})
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = resp.read().decode('utf-8', errors='ignore')
+            
+            # 使用 cloudscraper 绕过 Cloudflare
+            if USE_SCRAPER:
+                resp_data = scraper.get(url, timeout=30)
+                data = resp_data.text
+            else:
+                req = urllib.request.Request(url, headers={'User-Agent': 'DXGuardian/1.0 (BG2ENW)'})
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = resp.read().decode('utf-8', errors='ignore')
 
-            root = ET.fromstring(data)
+            # 检查是否返回了 HTML（Cloudflare 验证页）
+            if data.strip().startswith('<!DOCTYPE') or data.strip().startswith('<html'):
+                log('[PSKReporter] 警告：返回了 HTML 而非 XML，可能被 Cloudflare 阻挡')
+                time.sleep(300)
+                continue
+            
+            # 解析 XML
+            try:
+                root = ET.fromstring(data)
+            except ET.ParseError as e:
+                log(f'[PSKReporter] XML 解析失败：{e}')
+                log(f'[PSKReporter] 返回数据前 500 字：{data[:500]}')
+                time.sleep(300)
+                continue
+            
             count = 0
             last_seq = root.get('lastSeqNo', '')
+            log(f'[PSKReporter] 收到 {len(root.findall(".//receptionReport"))} 条接收报告')
 
             for recv in root.findall('.//receptionReport'):
                 try:
