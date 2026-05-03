@@ -117,7 +117,7 @@
         .dot-on { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; box-shadow: 0 0 6px #4CAF50; }
         .dot-off { width: 8px; height: 8px; border-radius: 50%; background: #f44336; }
         
-        /* 配色选择器 */
+        /* 主题选择器 */
         .theme-selector { position: relative; }
         .theme-btn {
             background: rgba(255,255,255,0.1);
@@ -145,31 +145,35 @@
             padding: 6px;
             z-index: 2000;
             box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            min-width: 180px;
+            min-width: 200px;
         }
         .theme-dropdown.show { display: block; }
+        .theme-dropdown-inner {
+            background: rgba(255,255,255,0.95);
+            border-radius: 6px;
+            overflow: hidden;
+        }
         .theme-option {
             display: flex;
             align-items: center;
             gap: 10px;
             padding: 10px 12px;
-            border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s;
             margin-bottom: 2px;
             font-size: 13px;
             font-weight: 500;
-            color: var(--text-primary);
+            color: #303133;
             background: transparent;
             border: 1px solid transparent;
         }
         .theme-option:hover { 
-            background: rgba(255,255,255,0.08); 
-            border-color: rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.06); 
+            border-color: rgba(0,0,0,0.15);
         }
         .theme-option:last-child { margin-bottom: 0; }
         .theme-option.active {
-            background: rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.08);
             border-color: var(--accent-primary);
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
@@ -177,9 +181,21 @@
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.6);
+            border: 2px solid rgba(0,0,0,0.3);
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             flex-shrink: 0;
+        }
+        
+        /* 深色主题下的下拉菜单文字颜色调整 */
+        [data-theme="default"] .theme-option,
+        [data-theme="ocean"] .theme-option,
+        [data-theme="forest"] .theme-option,
+        [data-theme="sunset"] .theme-option,
+        [data-theme="purple"] .theme-option {
+            color: #303133;
+        }
+        [data-theme="light"] .theme-option {
+            color: #303133;
         }
         
         /* ===== Band Bar (内嵌到 Top Bar) ===== */
@@ -431,32 +447,34 @@
             <div class="theme-selector">
                 <button class="theme-btn" onclick="toggleThemeDropdown()">
                     <span class="theme-icon"></span>
-                    <span>配色</span>
+                    <span>主题</span>
                 </button>
                 <div class="theme-dropdown" id="theme-dropdown">
-                    <div class="theme-option active" data-theme="default" onclick="setTheme('default')">
-                        <div class="theme-preview" style="background: linear-gradient(135deg, #e94560 0%, #0f0f1a 100%);"></div>
-                        <span>默认（深空）</span>
-                    </div>
-                    <div class="theme-option" data-theme="light" onclick="setTheme('light')">
-                        <div class="theme-preview" style="background: linear-gradient(135deg, #409EFF 0%, #f5f7fa 100%);"></div>
-                        <span>浅色（明亮）</span>
-                    </div>
-                    <div class="theme-option" data-theme="ocean" onclick="setTheme('ocean')">
-                        <div class="theme-preview" style="background: linear-gradient(135deg, #00d9ff 0%, #0a1628 100%);"></div>
-                        <span>海洋（蓝调）</span>
-                    </div>
-                    <div class="theme-option" data-theme="forest" onclick="setTheme('forest')">
-                        <div class="theme-preview" style="background: linear-gradient(135deg, #4CAF50 0%, #0d1a0f 100%);"></div>
-                        <span>森林（绿色）</span>
-                    </div>
-                    <div class="theme-option" data-theme="sunset" onclick="setTheme('sunset')">
-                        <div class="theme-preview" style="background: linear-gradient(135deg, #ff6b6b 0%, #1a0f0f 100%);"></div>
-                        <span>日落（暖色）</span>
-                    </div>
-                    <div class="theme-option" data-theme="purple" onclick="setTheme('purple')">
-                        <div class="theme-preview" style="background: linear-gradient(135deg, #d580ff 0%, #1a0f28 100%);"></div>
-                        <span>紫韵（紫色）</span>
+                    <div class="theme-dropdown-inner">
+                        <div class="theme-option active" data-theme="default" onclick="setTheme('default')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #e94560 0%, #0f0f1a 100%);"></div>
+                            <span>默认（深空）</span>
+                        </div>
+                        <div class="theme-option" data-theme="light" onclick="setTheme('light')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #409EFF 0%, #f5f7fa 100%);"></div>
+                            <span>浅色（明亮）</span>
+                        </div>
+                        <div class="theme-option" data-theme="ocean" onclick="setTheme('ocean')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #00d9ff 0%, #0a1628 100%);"></div>
+                            <span>海洋（蓝调）</span>
+                        </div>
+                        <div class="theme-option" data-theme="forest" onclick="setTheme('forest')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #4CAF50 0%, #0d1a0f 100%);"></div>
+                            <span>森林（绿色）</span>
+                        </div>
+                        <div class="theme-option" data-theme="sunset" onclick="setTheme('sunset')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #ff6b6b 0%, #1a0f0f 100%);"></div>
+                            <span>日落（暖色）</span>
+                        </div>
+                        <div class="theme-option" data-theme="purple" onclick="setTheme('purple')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #d580ff 0%, #1a0f28 100%);"></div>
+                            <span>紫韵（紫色）</span>
+                        </div>
                     </div>
                 </div>
             </div>
