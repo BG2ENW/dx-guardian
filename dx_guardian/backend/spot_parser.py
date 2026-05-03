@@ -23,27 +23,47 @@ class SpotParser:
         return None
     
     def _create_spot(self, match):
+        freq_khz = float(match.group('freq'))
         return {
             'callsign': match.group('callsign').upper(),
-            'freq': float(match.group('freq')),
+            'freq': freq_khz,
             'mode': match.group('mode').upper(),
             'reporter': match.group('reporter'),
             'comment': match.group('comment') or '',
             'time': match.group('time') or '',
             'timestamp': datetime.now(timezone.utc).isoformat(),
-            'band': self._freq_to_band(float(match.group('freq')))
+            'band': self._freq_to_band(freq_khz)
         }
     
-    def _freq_to_band(self, freq):
-        """Hz 转为波段名称"""
-        if freq < 1000:
-            return str(int(freq)) + 'm'  # kHz
-        elif freq < 30000:
-            return str(int(freq / 1000)) + 'm'  # MHz -> m
-        elif freq < 30000000:
-            return str(int(freq / 1000000)) + 'm'
+    def _freq_to_band(self, freq_khz):
+        """kHz 转为标准业余波段名称"""
+        # HF 波段
+        if freq_khz < 500:
+            return '160m'   # 1800-2000 kHz
+        elif freq_khz < 4000:
+            return '80m'    # 3500-4000 kHz
+        elif freq_khz < 5500:
+            return '60m'    # 5250-5400 kHz
+        elif freq_khz < 7500:
+            return '40m'    # 7000-7300 kHz
+        elif freq_khz < 10200:
+            return '30m'    # 10100-10150 kHz
+        elif freq_khz < 14500:
+            return '20m'    # 14000-14350 kHz
+        elif freq_khz < 18200:
+            return '17m'    # 18068-18168 kHz
+        elif freq_khz < 21500:
+            return '15m'    # 21000-21450 kHz
+        elif freq_khz < 25000:
+            return '12m'    # 24890-24990 kHz
+        elif freq_khz < 29000:
+            return '10m'    # 28000-29700 kHz
+        elif freq_khz < 54000:
+            return '6m'     # 50-54 MHz = 50000-54000 kHz
+        elif freq_khz < 148000:
+            return '2m'     # 144-148 MHz
         else:
-            return 'HF'
+            return 'VHF/UHF'
 
 class SpotDeduplicator:
     def __init__(self, max_size=10000, window_seconds=300):
@@ -52,11 +72,9 @@ class SpotDeduplicator:
         self.window = window_seconds
     
     def is_duplicate(self, spot):
-        # 使用呼号 + 频率作为去重 key（不含时间，因为时间总是不同）
         key = f"{spot.get('callsign', '')}:{spot.get('freq', '')}"
         now = datetime.now(timezone.utc).timestamp()
         
-        # 清理过期条目
         for k in [k for k, ts in self.seen.items() if ts < now - self.window]:
             del self.seen[k]
         
@@ -65,7 +83,6 @@ class SpotDeduplicator:
         
         self.seen[key] = now
         
-        # 保持大小限制
         if len(self.seen) > self.max_size:
             self.seen.popitem(last=False)
         
@@ -77,12 +94,10 @@ class SpotRateLimiter:
         self.timestamps = []
     
     def allow(self):
-        """检查是否允许处理（兼容旧代码）"""
         return self.should_process()
     
     def should_process(self):
         now = time.time()
-        # 只保留最近 1 秒的时间戳
         self.timestamps = [t for t in self.timestamps if t > now - 1.0]
         
         if len(self.timestamps) >= self.max_per_second:

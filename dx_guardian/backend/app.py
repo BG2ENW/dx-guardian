@@ -32,10 +32,12 @@ from csv_parser import CSVParser
 from alert_engine_v2 import AlertEngineV2, init_alert_engine, get_alert_engine
 from wavelog_routes import register_wavelog_routes
 from push_routes import register_push_routes
-from watchlist_routes import register_watchlist_routes
+from watchlist_routes import register_watchlist_routes, load_watchlist
 from station_routes import register_station_routes, load_station_config
 from log_routes import register_log_routes
 from score_routes import register_score_routes
+from scorer import OpportunityScorer
+from opportunities_routes import register_routes as register_opportunities_routes
 
 # ========== 预警引擎（V2增强版）===========
 # 旧 AlertEngine 已迁移到 alert_engine_v2.py，使用 AlertEngineV2
@@ -56,11 +58,11 @@ def update_solar_data():
     
     # 默认值
     SOLAR_DATA = {
-        'sfi': 0,
-        'sn': 0,
-        'k': 0,
-        'a_index': 0,
-        'k_index': 0,
+        'sfi': 100,  # 默认值
+        'sn': 10,
+        'k': 2,
+        'a_index': 5,
+        'k_index': 2,
         'updated_at': None
     }
     
@@ -84,10 +86,10 @@ def update_solar_data():
                         a_node = solardata.find('aindex')
                         k_node = solardata.find('kindex')
                         
-                        SOLAR_DATA['sfi'] = int(sfi_node.text) if sfi_node is not None and sfi_node.text else 0
-                        SOLAR_DATA['sn'] = int(sn_node.text) if sn_node is not None and sn_node.text else 0
-                        SOLAR_DATA['a_index'] = int(a_node.text) if a_node is not None and a_node.text else 0
-                        SOLAR_DATA['k_index'] = int(k_node.text) if k_node is not None and k_node.text else 0
+                        SOLAR_DATA['sfi'] = int(sfi_node.text) if sfi_node is not None and sfi_node.text else 100
+                        SOLAR_DATA['sn'] = int(sn_node.text) if sn_node is not None and sn_node.text else 10
+                        SOLAR_DATA['a_index'] = int(a_node.text) if a_node is not None and a_node.text else 5
+                        SOLAR_DATA['k_index'] = int(k_node.text) if k_node is not None and k_node.text else 2
                         SOLAR_DATA['k'] = SOLAR_DATA['k_index']
                         SOLAR_DATA['updated_at'] = datetime.now(timezone.utc).isoformat()
                         
@@ -262,6 +264,20 @@ register_score_routes(
         'get_solar_data': lambda: SOLAR_DATA,
         'get_dxcc_cn': get_dxcc_cn,
         'get_logs_dir': lambda: Path(__file__).parent / 'logs',
+    },
+)
+
+# 注册推荐机会路由
+register_opportunities_routes(
+    app,
+    {
+        'log': log,
+        'get_spot_history': lambda: spot_history,
+        'get_scorer': lambda: scorer,
+        'get_solar_data': lambda: SOLAR_DATA,
+        'get_band_counts': lambda: band_counts,
+        'get_total_spots': lambda: total_spots,
+        'get_dxcc_cn': get_dxcc_cn,
     },
 )
 

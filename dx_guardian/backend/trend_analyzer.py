@@ -76,28 +76,34 @@ class TrendAnalyzer:
             if early == 0 and late == 0:
                 trend = '无活动'
                 trend_val = 0
+                trend_label = '无活动'
             elif early == 0:
                 trend = '🆕 新活跃'
                 trend_val = 100
+                trend_label = '新活跃'
             else:
                 change = (late - early) / early * 100
                 if change > 30:
                     trend = '📈 上升'
                     trend_val = change
+                    trend_label = '上升'
                     all_up += 1
                 elif change < -30:
                     trend = '📉 下降'
                     trend_val = change
+                    trend_label = '下降'
                     all_down += 1
                 else:
                     trend = '➡️ 稳定'
                     trend_val = change
+                    trend_label = '稳定'
 
             top_dxcc = sorted(band_dxcc[band].items(), key=lambda x: x[1], reverse=True)[:3]
 
             result[band] = {
                 'count': sum(counts),
                 'trend': trend,
+                'trend_label': trend_label,
                 'trend_value': round(trend_val, 1),
                 'top_dxcc': [{'name': d, 'count': c} for d, c in top_dxcc],
                 'segment_counts': counts,

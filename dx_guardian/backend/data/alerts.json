@@ -2592,7 +2592,523 @@
         "enabled": true,
         "created_at": "2026-04-29T04:15:22.051753+00:00"
       }
+    },
+    {
+      "id": "alert_1777785850459_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m CW 21051.000MHz",
+      "spot": {
+        "callsign": "JA8RUZ",
+        "freq": 21051.0,
+        "mode": "CW",
+        "reporter": "S53A-#",
+        "comment": "",
+        "time": "",
+        "timestamp": "2026-05-03T05:24:10.459071+00:00",
+        "band": "15m",
+        "lat": 36.6824,
+        "lon": 138.1096,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777785850.4591422,
+        "score": 45,
+        "score_total": 45,
+        "score_factors": {
+          "band_activity": {
+            "score": 10,
+            "max": 25,
+            "detail": "15m 活跃 (6/58 = 10.3%)"
+          },
+          "solar": {
+            "score": 5,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定, 15m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 3,
+            "max": 15,
+            "detail": "1401 km → 15m 远距传播"
+          },
+          "spot_heat": {
+            "score": 12,
+            "max": 15,
+            "detail": "活跃 (6 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "CW 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-03T05:24:10.459250+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777785856893_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 40m CW 7026.100MHz",
+      "spot": {
+        "callsign": "JA3KAB",
+        "freq": 7026.1,
+        "mode": "CW",
+        "reporter": "JQ1BVI-#",
+        "comment": "",
+        "time": "",
+        "timestamp": "2026-05-03T05:24:16.893215+00:00",
+        "band": "40m",
+        "lat": 36.5144,
+        "lon": 138.6896,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777785856.8933117,
+        "score": 94,
+        "score_total": 94,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "40m 活跃 (39/105 = 37.1%)"
+          },
+          "solar": {
+            "score": 14,
+            "max": 20,
+            "detail": "SFI 良好, K 轻微扰动"
+          },
+          "time_window": {
+            "score": 15,
+            "max": 15,
+            "detail": "夜间低频传播好"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1449 km → 40m 中距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (10 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "CW 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-03T05:24:16.893424+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777785869759_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m FT8 21074.000MHz",
+      "spot": {
+        "callsign": "JA8TIP",
+        "freq": 21074.0,
+        "mode": "FT8",
+        "reporter": "DR4W-#",
+        "comment": "",
+        "time": "",
+        "timestamp": "2026-05-03T05:24:29.759049+00:00",
+        "band": "15m",
+        "lat": 36.436,
+        "lon": 138.3648,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777785869.7591746
+      },
+      "created_at": "2026-05-03T05:24:29.759291+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777785976417_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 20m CW 14019.500MHz",
+      "spot": {
+        "callsign": "JA6WFM",
+        "freq": 14019.5,
+        "mode": "CW",
+        "reporter": "BH4RRG-#",
+        "comment": "",
+        "time": "",
+        "timestamp": "2026-05-03T05:26:16.417677+00:00",
+        "band": "20m",
+        "lat": 36.8776,
+        "lon": 138.5296,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777785976.4177368,
+        "score": 84,
+        "score_total": 84,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "20m 活跃 (32/106 = 30.2%)"
+          },
+          "solar": {
+            "score": 14,
+            "max": 20,
+            "detail": "SFI 良好, K 轻微扰动"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1409 km → 20m 中距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (13 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "CW 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-03T05:26:16.417810+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777785977673_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m CW 21014.000MHz",
+      "spot": {
+        "callsign": "JA6WFM",
+        "freq": 21014.0,
+        "mode": "CW",
+        "reporter": "OH6BG-#",
+        "comment": "",
+        "time": "",
+        "timestamp": "2026-05-03T05:26:17.673028+00:00",
+        "band": "15m",
+        "lat": 36.8776,
+        "lon": 138.5296,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777785977.6731987,
+        "score": 55,
+        "score_total": 55,
+        "score_factors": {
+          "band_activity": {
+            "score": 8,
+            "max": 25,
+            "detail": "15m 活跃 (10/120 = 8.3%)"
+          },
+          "solar": {
+            "score": 14,
+            "max": 20,
+            "detail": "SFI 良好, K 轻微扰动"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 3,
+            "max": 15,
+            "detail": "1409 km → 15m 远距传播"
+          },
+          "spot_heat": {
+            "score": 15,
+            "max": 15,
+            "detail": "非常活跃 (14 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "CW 匹配"
+          }
+        },
+        "recommendation": "🟡 推荐"
+      },
+      "created_at": "2026-05-03T05:26:17.673363+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777785982596_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 15m CW 21056.300MHz",
+      "spot": {
+        "callsign": "JA7ODY",
+        "freq": 21056.3,
+        "mode": "CW",
+        "reporter": "KH6LC-#",
+        "comment": "",
+        "time": "",
+        "timestamp": "2026-05-03T05:26:22.596693+00:00",
+        "band": "15m",
+        "lat": 36.8016,
+        "lon": 138.5192,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777785982.5968297
+      },
+      "created_at": "2026-05-03T05:26:22.596954+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777785993717_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 10m CW 28060.300MHz",
+      "spot": {
+        "callsign": "JA0XQO/1",
+        "freq": 28060.3,
+        "mode": "CW",
+        "reporter": "VU2TUM-#",
+        "comment": "",
+        "time": "",
+        "timestamp": "2026-05-03T05:26:33.717173+00:00",
+        "band": "10m",
+        "lat": 36.1736,
+        "lon": 138.7112,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777785993.717205,
+        "score": 44,
+        "score_total": 44,
+        "score_factors": {
+          "band_activity": {
+            "score": 16,
+            "max": 25,
+            "detail": "10m 活跃 (1/6 = 16.7%)"
+          },
+          "solar": {
+            "score": 5,
+            "max": 20,
+            "detail": "SFI 很低, K 极稳定, 10m 需要更高 SFI"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 3,
+            "max": 15,
+            "detail": "1479 km → 10m 远距传播"
+          },
+          "spot_heat": {
+            "score": 5,
+            "max": 15,
+            "detail": "少量活跃 (1 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "CW 匹配"
+          }
+        },
+        "recommendation": "🟠 一般"
+      },
+      "created_at": "2026-05-03T05:26:33.717248+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777785997943_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 20m FT8 14074.000MHz",
+      "spot": {
+        "callsign": "JA5NC",
+        "freq": 14074.0,
+        "mode": "FT8",
+        "reporter": "JI1HFJ-#",
+        "comment": "",
+        "time": "",
+        "timestamp": "2026-05-03T05:26:37.942714+00:00",
+        "band": "20m",
+        "lat": 36.8464,
+        "lon": 138.7672,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777785997.9428644,
+        "score": 81,
+        "score_total": 81,
+        "score_factors": {
+          "band_activity": {
+            "score": 25,
+            "max": 25,
+            "detail": "20m 活跃 (15/50 = 30.0%)"
+          },
+          "solar": {
+            "score": 14,
+            "max": 20,
+            "detail": "SFI 良好, K 轻微扰动"
+          },
+          "time_window": {
+            "score": 5,
+            "max": 15,
+            "detail": "夜间高频关闭"
+          },
+          "distance": {
+            "score": 15,
+            "max": 15,
+            "detail": "1425 km → 20m 中距传播"
+          },
+          "spot_heat": {
+            "score": 12,
+            "max": 15,
+            "detail": "活跃 (6 个 Spot)"
+          },
+          "mode_match": {
+            "score": 10,
+            "max": 10,
+            "detail": "FT8 匹配"
+          }
+        },
+        "recommendation": "🟢 强烈推荐"
+      },
+      "created_at": "2026-05-03T05:26:37.943039+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
+    },
+    {
+      "id": "alert_1777786008944_0",
+      "type": "prefix",
+      "priority": "important",
+      "priority_label": "重要",
+      "target_value": "JA",
+      "message": "前缀 JA (Japan) 出现在 10m FT8 28074.000MHz",
+      "spot": {
+        "callsign": "JA4WXH",
+        "freq": 28074.0,
+        "mode": "FT8",
+        "reporter": "VU2OY-#",
+        "comment": "",
+        "time": "",
+        "timestamp": "2026-05-03T05:26:48.943957+00:00",
+        "band": "10m",
+        "lat": 36.5736,
+        "lon": 138.1128,
+        "precision": "dxcc",
+        "dxcc": "Japan",
+        "_server_ts": 1777786008.9441457
+      },
+      "created_at": "2026-05-03T05:26:48.944304+00:00",
+      "is_read": false,
+      "matched_item": {
+        "id": "1777446102529",
+        "target_type": "prefix",
+        "target_value": "JA",
+        "band_preference": "",
+        "mode_preference": "",
+        "enabled": true,
+        "created_at": "2026-04-29T07:01:42.529690+00:00"
+      }
     }
   ],
-  "updated_at": "2026-05-02T06:45:22.389347+00:00"
+  "updated_at": "2026-05-03T05:26:48.944430+00:00"
 }
