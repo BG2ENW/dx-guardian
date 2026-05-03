@@ -26,6 +26,7 @@ from config import (
 )
 from spot_parser import SpotParser, SpotDeduplicator, SpotRateLimiter
 from coordinate_resolver import resolve_coordinates
+from coordinate_resolver import resolve_coordinates
 from adif_parser import ADIFParser
 from dxcc_translator import get_dxcc_cn, translate_dxcc_list
 from csv_parser import CSVParser
@@ -626,6 +627,15 @@ def process_spot(line):
             spot['score_total'] = score_result['total']
             spot['score_factors'] = score_result['factors']
             spot['recommendation'] = score_result['recommendation']
+            
+            # 添加 cq/itu/lotw_verified 字段（如果坐标解析器提供了）
+            coords = resolve_coordinates(spot.get('callsign', ''), spot.get('grid', None))
+            if coords.get('cq'):
+                spot['cq'] = coords['cq']
+            if coords.get('itu'):
+                spot['itu'] = coords['itu']
+            if coords.get('lotw_verified') is not None:
+                spot['lotw_verified'] = coords['lotw_verified']
     except Exception as e:
         log(f'[评分异常] {e}')
 

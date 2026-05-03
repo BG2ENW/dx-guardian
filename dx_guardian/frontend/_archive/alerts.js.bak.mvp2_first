@@ -1,0 +1,195 @@
+// 太阳数据管理
+let solarData = {};
+
+function loadSolarData() {
+    fetch('/api/stats/solar')
+        .then(resp => resp.json())
+        .then(data => {
+            if (data.success) {
+                solarData = data.data;
+                renderSolarData();
+            }
+        })
+        .catch(e => console.error('加载太阳数据失败:', e));
+}
+
+function renderSolarData() {
+    const sfiEl = document.getElementById('solar-sfi');
+    const snEl = document.getElementById('solar-sn');
+    const kEl = document.getElementById('solar-k');
+    const aEl = document.getElementById('solar-a');
+    const conditionEl = document.getElementById('solar-condition');
+    
+    if (sfiEl) sfiEl.textContent = solarData.sfi || '-';
+    if (snEl) snEl.textContent = solarData.sn || '-';
+    if (kEl) kEl.textContent = solarData.k_index || '-';
+    if (aEl) aEl.textContent = solarData.a_index || '-';
+    
+    if (conditionEl) {
+        const cond = getSolarCondition(solarData);
+        conditionEl.textContent = cond.text;
+        conditionEl.style.color = cond.color;
+    }
+}
+
+function getSolarCondition(data) {
+    const sfi = data.sfi || 0;
+    const k = data.k_index || 0;
+    
+    if (k >= 5) {
+        return {text: '🔴 地磁暴', color: '#f44336'};
+    } else if (k >= 4) {
+        return {text: '🟠 地磁扰动', color: '#FF9800'};
+    } else if (sfi >= 150) {
+        return {text: '🟢 极好', color: '#4CAF50'};
+    } else if (sfi >= 100) {
+        return {text: '🟡 良好', color: '#FFC107'};
+    } else if (sfi >= 70) {
+        return {text: '🔵 正常', color: '#2196F3'};
+    } else {
+        return {text: '⚪ 偏低', color: '#9E9E9E'};
+    }
+}
+
+// WebSocket 接收太阳数据更新
+socket.on('solar_update', (data) => {
+    solarData = data;
+    renderSolarData();
+});
+
+// 预警列表管理
+let alertHistory = [];
+const ALERT_HISTORY_MAX = 50;
+
+async function loadAlerts() {
+    try {
+        const resp = await fetch('/api/user/alerts?limit=50');
+        if (resp.ok) {
+            const data = await resp.json();
+            alertHistory = data.alerts || [];
+            renderAlerts();
+        }
+    } catch (e) {
+        console.error('加载预警列表失败:', e);
+    }
+}
+
+function renderAlerts() {
+    const container = document.getElementById('alert-container');
+    const countEl = document.getElementById('alert-count');
+    if (!container) return;
+
+    // 更新计数
+    if (countEl) {
+        countEl.textContent = alertHistory.length;
+        countEl.style.display = alertHistory.length > 0 ? 'inline' : 'none';
+    }
+
+    if (alertHistory.length === 0) {
+        container.innerHTML = '<div style="font-size:12px;color:#666;text-align:center;padding:12px;">暂无预警</div>';
+        return;
+    }
+
+    container.innerHTML = alertHistory.map(alert => {
+        const spot = alert.spot || {};
+        const icon = getAlertIcon(alert.type);
+        const timeStr = formatAlertTime(alert.created_at);
+        
+        return `<div class="alert-item" style="border-left:3px solid #FF5733;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                        <span>${icon}</span>
+                        <span style="font-weight:bold;color:#fff;font-size:13px;">${spot.callsign || '?'}</span>
+                        <span style="color:#aaa;font-size:11px;">${alert.type}</span>
+                    </div>
+                    <div style="font-size:12px;color:#ddd;">${alert.message}</div>
+                    <div style="font-size:11px;color:#666;margin-top:4px;">${timeStr}</div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function getAlertIcon(type) {
+    const icons = {
+        'callsign': '📞',
+        'prefix': '🔤',
+        'dxcc': '🏳️',
+        'band': '📻',
+        'mode': '📡'
+    };
+    return icons[type] || '🔔';
+}
+
+function formatAlertTime(isoStr) {
+    try {
+        const date = new Date(isoStr);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        if (diffMins < 1) return '刚刚';
+        if (diffMins < 60) return `${diffMins} 分钟前`;
+        
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours} 小时前`;
+        
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays} 天前`;
+    } catch {
+        return '?';
+    }
+}
+
+// WebSocket 接收新预警
+socket.on('alert:new', (alert) => {
+    alertHistory.unshift(alert);
+    if (alertHistory.length > ALERT_HISTORY_MAX) {
+        alertHistory = alertHistory.slice(0, ALERT_HISTORY_MAX);
+    }
+    renderAlerts();
+    
+    // 浏览器通知（任务 2.5）
+    showBrowserNotification(alert);
+});
+
+// 浏览器通知（任务 2.5）
+function showBrowserNotification(alert) {
+    if (!('Notification' in window)) {
+        return;
+    }
+    
+    if (Notification.permission === 'granted') {
+        new Notification('🔔 DX Guardian', {
+            body: alert.message,
+            icon: '/images/notification-icon.png'
+        });
+    } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                new Notification('🔔 DX Guardian', {
+                    body: alert.message,
+                    icon: '/images/notification-icon.png'
+                });
+            }
+        });
+    }
+}
+
+// 请求通知权限
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadAlerts();  // 加载预警列表
+    loadSolarData();  // 加载太阳数据
+    
+    // 5秒后请求通知权限（避免首次加载弹窗）
+    setTimeout(() => {
+        requestNotificationPermission();
+    }, 5000);
+});

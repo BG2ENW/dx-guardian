@@ -1,0 +1,367 @@
+// 预警和缺失DXCC管理
+let alertHistory = [];
+const ALERT_HISTORY_MAX = 50;
+let neededDXCC = new Set();
+
+async function loadAlerts() {
+    try {
+        const resp = await fetch('/api/user/alerts?limit=50');
+        if (resp.ok) {
+            const data = await resp.json();
+            alertHistory = data.alerts || [];
+            renderAlerts();
+        }
+    } catch (e) {
+        console.error('加载预警列表失败:', e);
+    }
+}
+
+function renderAlerts() {
+    const container = document.getElementById('alert-container');
+    const countEl = document.getElementById('alert-count');
+    if (!container) return;
+
+    // 更新计数
+    if (countEl) {
+        countEl.textContent = alertHistory.length;
+        countEl.style.display = alertHistory.length > 0 ? 'inline' : 'none';
+    }
+
+    if (alertHistory.length === 0) {
+        container.innerHTML = '<div style="font-size:12px;color:#666;text-align:center;padding:12px;">暂无预警</div>';
+        return;
+    }
+
+    container.innerHTML = alertHistory.map(alert => {
+        const spot = alert.spot || {};
+        const icon = getAlertIcon(alert.type);
+        const timeStr = formatAlertTime(alert.created_at);
+        
+        return `<div class="alert-item" style="border-left:3px solid #FF5733;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                        <span>${icon}</span>
+                        <span style="font-weight:bold;color:#fff;font-size:13px;">${spot.callsign || '?'}</span>
+                        <span style="color:#aaa;font-size:11px;">${alert.type}</span>
+                    </div>
+                    <div style="font-size:12px;color:#ddd;">${alert.message}</div>
+                    <div style="font-size:11px;color:#666;margin-top:4px;">${timeStr}</div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function getAlertIcon(type) {
+    const icons = {
+        'callsign': '📞',
+        'prefix': '🔤',
+        'dxcc': '🏳️',
+        'band': '📻',
+        'mode': '📡'
+    };
+    return icons[type] || '🔔';
+}
+
+function formatAlertTime(isoStr) {
+    try {
+        const date = new Date(isoStr);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        if (diffMins < 1) return '刚刚';
+        if (diffMins < 60) return `${diffMins} 分钟前`;
+        
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `${diffHours} 小时前`;
+        
+        const diffDays = Math.floor(diffHours / 24);
+        return `${diffDays} 天前`;
+    } catch {
+        return '?';
+    }
+}
+
+// WebSocket 接收新预警
+socket.on('alert:new', (alert) => {
+    alertHistory.unshift(alert);
+    if (alertHistory.length > ALERT_HISTORY_MAX) {
+        alertHistory = alertHistory.slice(0, ALERT_HISTORY_MAX);
+    }
+    renderAlerts();
+    
+    // 浏览器通知
+    showBrowserNotification(alert);
+});
+
+// 缺失DXCC 高亮
+socket.on('dxcc:needed', (data) => {
+    if (data.needed && data.dxcc) {
+        neededDXCC.add(data.dxcc.toUpperCase());
+        console.log('[缺失DXCC]', data.message);
+        // 如果地图上有这个定位的标记，做特殊高亮显示
+        highlightNeededDXCC(data.dxcc, data.callsign);
+    }
+});
+
+function highlightNeededDXCC(dxcc, callsign) {
+    // 在地图上找到匹配的spot标记，做特殊高亮
+    // 这个需要与主要的spot历史数据配合
+    const targetEntries = spotHistory.filter(entry => 
+        entry.spot.callsign === callsign || 
+        entry.spot.dxcc === dxcc ||
+        entry.spot.dxcc === dxcc.toUpperCase()
+    );
+    
+    targetEntries.forEach(entry => {
+        if (entry.marker) {
+            // 修改标记样式为特殊高亮（例如：金色边框或脉冲效果）
+            const icon = L.divIcon({
+                className: 'spot-marker-wrapper',
+                html: '<div class="spot-pin" style="--pin-color:#FFD700;--pin-size:14px;">' +
+                      '<div class="spot-pulse" style="width:30px;height:30px;background:#FFD700;animation:spot-pulse-anim 1s ease-out infinite;"></div>' +
+                      '<div class="spot-dot" style="width:14px;height:14px;border-radius:50%;background:#FFD700;border:3px solid #fff;box-shadow:0 0 12px #FFD700, 0 0 4px #FFD700;"></div>' +
+                      '</div>',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+            
+            if (entry.marker) {
+                entry.marker.setIcon(icon);
+            }
+        }
+    });
+}
+
+// 浏览器通知
+function showBrowserNotification(alert) {
+    if (!('Notification' in window)) {
+        return;
+    }
+    
+    if (Notification.permission === 'granted') {
+        new Notification('🔔 DX Guardian', {
+            body: alert.message,
+            icon: '/images/marker-icon.png'
+        });
+    } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                new Notification('🔔 DX Guardian', {
+                    body: alert.message,
+                    icon: '/images/marker-icon.png'
+                });
+            }
+        });
+    }
+}
+
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+// 启动时加载
+document.addEventListener('DOMContentLoaded', () => {
+    loadAlerts();
+    loadLogs();
+    loadMissingDXCCScores();
+    
+    // 5秒后请求通知权限
+    setTimeout(() => {
+        requestNotificationPermission();
+    }, 5000);
+});
+
+// DXCC 统计展示
+function renderLogs() {
+    const container = document.getElementById('logs-container');
+    if (!container) return;
+
+    if (userLogs.length === 0) {
+        container.innerHTML = '<div style="font-size:12px;color:#666;text-align:center;padding:12px;">暂无日志，点击上方上传</div>';
+        return;
+    }
+
+    // 使用最新日志的统计数据
+    const latestLog = userLogs[0];
+    const stats = latestLog.dxcc_stats || {};
+    const worked = stats.worked_dxcc_count || 0;
+    const total = stats.total_dxcc_entities || 0;
+    const topEntities = stats.top_entities || [];
+    const bandStats = stats.band_stats || {};
+
+    // 构建 HTML
+    let html = `
+        <div class="alert-item" style="border-left:3px solid #4CAF50;">
+            <div style="font-weight:bold;color:#fff;font-size:13px;">${latestLog.filename}</div>
+            <div style="font-size:11px;color:#aaa;margin-bottom:4px;">${latestLog.record_count} 条记录 · ${formatAlertTime(latestLog.uploaded_at)}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="font-size:11px;color:#4CAF50;">DXCC ${worked}/${total}</span>
+                <button onclick="deleteLog('${latestLog.id}')" style="background:rgba(244,67,54,0.2);border:none;color:#f44336;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:10px;margin-left:auto;">✕</button>
+            </div>
+        </div>`;
+        
+    // 前5名实体
+    if (topEntities.length > 0) {
+        html += `
+        <div style="margin-top:8px;padding:8px;background:rgba(255,255,255,0.04);border-radius:4px;">
+            <div style="font-size:11px;color:#fff;margin-bottom:4px;">通联最多</div>
+            ${topEntities.slice(0, 5).map(([entity, count]) => 
+                `<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0;">
+                    <span style="color:#ddd;">${entity}</span>
+                    <span style="color:#4CAF50;">${count}</span>
+                </div>`
+            ).join('')}
+        </div>`;
+    }
+    
+    container.innerHTML = html;
+
+    // 初始化波段图表（在 Canvas 上）
+    initBandChart(bandStats);
+}
+
+// =========== 机会评分 UI ===========
+let missingDXCCScores = [];
+
+async function loadMissingDXCCScores() {
+    try {
+        const resp = await fetch('/api/score/missing');
+        if (resp.ok) {
+            const data = await resp.json();
+            missingDXCCScores = data.scores || [];
+            renderMissingDXCCScores();
+        }
+    } catch (e) {
+        console.error('加载缺失DXCC评分失败:', e);
+    }
+}
+
+function renderMissingDXCCScores() {
+    const container = document.getElementById('scores-container');
+    if (!container) return;
+
+    if (missingDXCCScores.length === 0) {
+        container.innerHTML = '<div style="font-size:12px;color:#666;text-align:center;padding:12px;">暂无缺失DXCC数据</div>';
+        return;
+    }
+
+    container.innerHTML = missingDXCCScores.map(item => {
+        const score = item.score || {};
+        const factors = score.factors || {};
+        const rec = score.recommendation || '';
+        const spot = item.spot || {};
+        
+        return `<div class="alert-item" style="border-left:3px solid ${getScoreColor(score.total || 0)};">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                        <span style="font-weight:bold;color:#fff;font-size:13px;">${item.dxcc || '?'}</span>
+                        <span style="font-size:11px;color:#aaa;">${spot.callsign || ''}</span>
+                    </div>
+                    <div style="font-size:11px;color:#ddd;margin-bottom:4px;">${spot.band || ''} · ${spot.mode || ''}</div>
+                    
+                    <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                        ${renderScoreFactors(factors)}
+                    </div>
+                </div>
+                <div style="text-align:right;min-width:60px;">
+                    <div style="font-size:20px;font-weight:bold;color:${getScoreColor(score.total || 0)};">${score.total || 0}</div>
+                    <div style="font-size:10px;color:#aaa;">${rec}</div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderScoreFactors(factors) {
+    const labels = {
+        'band_activity': '波段',
+        'solar': '太阳',
+        'time_window': '时间',
+        'distance': '距离',
+        'spot_heat': '热度',
+        'mode_match': '模式'
+    };
+    
+    return Object.entries(factors).map(([key, val]) => {
+        const label = labels[key] || key;
+        const pct = Math.round((val.score / val.max) * 100);
+        return `<div style="font-size:9px;color:#ccc;padding:2px 4px;background:rgba(255,255,255,0.06);border-radius:3px;" title="${val.detail}">
+            ${label} ${pct}%
+        </div>`;
+    }).join('');
+}
+
+function getScoreColor(score) {
+    if (score >= 70) return '#4CAF50';
+    if (score >= 50) return '#FF9800';
+    if (score >= 30) return '#FF5722';
+    return '#f44336';
+}
+
+// 启动时加载评分
+socket.on('spot:new', () => {
+    // 每次收到新spot刷新缺失DXCC评分
+    if (missingDXCCScores.length > 0) {
+        loadMissingDXCCScores();
+    }
+});
+
+let bandChart = null;
+
+function initBandChart(bandStats) {
+    const canvas = document.getElementById('band-chart-canvas');
+    if (!canvas) return;
+
+    const bandNames = Object.keys(bandStats);
+    const bandCounts = bandNames.map(b => bandStats[b].count);
+
+    if (bandNames.length === 0) return;
+
+    try {
+        if (bandChart instanceof Chart) {
+            bandChart.destroy();
+        }
+    } catch (e) {
+       console.warn('销毁旧图表失败:', e);
+    }
+
+    try {
+        bandChart = new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: bandNames,
+                datasets: [{
+                    data: bandCounts,
+                    backgroundColor: [
+                        '#e94560', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0',
+                        '#00BCD4', '#8BC34A', '#FFC107', '#FF5722', '#607D8B'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            color: '#aaa',
+                            font: { size: 10 },
+                            boxWidth: 10,
+                            padding: 8
+                        }
+                    }
+                }
+            }
+        });
+    } catch (e) {
+        console.error('创建图表失败:', e);
+    }
+}

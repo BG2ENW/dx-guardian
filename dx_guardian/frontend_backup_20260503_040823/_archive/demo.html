@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DX Guardian 重建 Demo</title>
+    <style>
+        /* ===== 配色系统 ===== */
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1f2937;
+            --bg-card-hover: #374151;
+            
+            --accent-primary: #3b82f6;
+            --accent-glow: #60a5fa;
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            
+            --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            --gradient-danger: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+            --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            
+            --border-light: rgba(148, 163, 184, 0.1);
+            --border-medium: rgba(148, 163, 184, 0.2);
+            
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+        
+        /* ===== Top Bar 顶栏 ===== */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: rgba(17, 24, 39, 0.95);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 1000;
+            border-bottom: 1px solid var(--border-medium);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .logo-icon {
+            font-size: 20px;
+            animation: rotate-satellite 10s linear infinite;
+        }
+        
+        @keyframes rotate-satellite {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 波段筛选 */
+        .band-filter {
+            display: flex;
+            gap: 6px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .band-btn {
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .band-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-glow);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .band-btn.active {
+            background: var(--gradient-accent);
+            border-color: transparent;
+            color: white;
+        }
+        
+        .band-count {
+            background: rgba(255,255,255,0.2);
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-size: 9px;
+            margin-left: 4px;
+        }
+        
+        /* 右侧状态区 */
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border-radius: 20px;
+            font-size: 11px;
+            border: 1px solid var(--border-light);
+        }
+        
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-success);
+            box-shadow: 0 0 8px var(--accent-success);
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .notification-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .notification-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-glow);
+            transform: scale(1.05);
+        }
+        
+        .notification-btn .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--gradient-danger);
+            color: white;
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 8px;
+            animation: pulse-badge 2s infinite;
+        }
+        
+        @keyframes pulse-badge {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        
+        .icon-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-glow);
+            transform: scale(1.05);
+        }
+        
+        /* ===== 主布局 ===== */
+        .main-container {
+            display: grid;
+            grid-template-columns: 260px 1fr 300px;
+            gap: 12px;
+            padding: 64px 12px 12px;
+            height: 100vh;
+        }
+        
+        /* ===== 卡片通用样式 ===== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: card-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .card:hover {
+            border-color: var(--border-medium);
+            box-shadow: 
+                0 8px 16px rgba(0, 0, 0, 0.5),
+                0 0 20px rgba(59, 130, 246, 0.15);
+        }
+        
+        @keyframes card-enter {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--gradient-accent);
+            color: white;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .card-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .card-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+        
+        .card-body {
+            padding: 16px;
+        }
+        
+        /* ===== 左侧面板 ===== */
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        /* 太阳数据卡片 */
+        .solar-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .solar-stat {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 6px 0;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-value.warning {
+            background: var(--gradient-warning);
+            -webkit-background-clip: text;
+        }
+        
+        .stat-value.success {
+            background: var(--gradient-success);
+            -webkit-background-clip: text;
+        }
+        
+        .stat-trend {
+            font-size: 10px;
+            margin-top: 4px;
+        }
+        
+        .stat-trend.up { color: var(--accent-success); }
+        .stat-trend.down { color: var(--accent-danger); }
+        
+        /* 系统状态卡片 */
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 12px;
+        }
+        
+        .status-row:last-child {
+            border-bottom: none;
+        }
+        
+        .status-row .label { color: var(--text-secondary); }
+        .status-row .value { 
+            color: var(--text-primary); 
+            font-weight: bold;
+        }
+        
+        /* ===== 地图区域 ===== */
+        .map-area {
+            position: relative;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-medium);
+        }
+        
+        .map-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+            background: linear-gradient(135deg, #0f141f 0%, #1a1f2e 100%);
+        }
+        
+        .map-icon {
+            font-size: 80px;
+            opacity: 0.3;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .map-text {
+            font-size: 18px;
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+        
+        /* Spot 标记演示 */
+        .spot-marker {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            animation: spot-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        @keyframes spot-enter {
+            0% {
+                opacity: 0;
+                transform: scale(0) rotate(-180deg);
+            }
+            60% {
+                transform: scale(1.2) rotate(10deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+        }
+        
+        .spot-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--gradient-accent);
+            border: 3px solid white;
+            box-shadow: 
+                0 2px 8px rgba(0,0,0,0.5),
+                0 0 12px var(--accent-glow),
+                inset 0 -2px 4px rgba(0,0,0,0.3);
+            cursor: pointer;
+            animation: float 3s ease-in-out infinite;
+            transition: all 0.3s;
+        }
+        
+        .spot-dot:hover {
+            transform: scale(1.5);
+            box-shadow: 
+                0 4px 16px rgba(0,0,0,0.6),
+                0 0 24px var(--accent-glow);
+        }
+        
+        .spot-pulse {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            opacity: 0;
+            animation: pulse-ring 2s ease-out infinite;
+        }
+        
+        @keyframes pulse-ring {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0.6; }
+            100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+        }
+        
+        /* ===== 右侧面板 ===== */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        /* Tab 切换 */
+        .card-tabs {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .tab-header {
+            display: flex;
+            gap: 0;
+            background: var(--bg-secondary);
+            padding: 4px;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 10px 8px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .tab-btn:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--text-primary);
+        }
+        
+        .tab-btn.active {
+            background: var(--gradient-accent);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+        
+        .tab-content {
+            height: calc(100% - 48px);
+            overflow-y: auto;
+        }
+        
+        .tab-panel {
+            display: none;
+            padding: 12px;
+        }
+        
+        .tab-panel.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(10px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        /* 关注列表示例 */
+        .watchlist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--accent-success);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .watchlist-item:hover {
+            background: var(--bg-card-hover);
+            transform: translateX(4px);
+        }
+        
+        .wl-call {
+            font-weight: bold;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+        
+        .wl-type {
+            font-size: 10px;
+            color: var(--text-muted);
+            padding: 1px 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        
+        /* 预警项 */
+        .alert-item {
+            padding: 10px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid var(--accent-danger);
+            animation: slideIn 0.4s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .alert-title {
+            font-weight: bold;
+            font-size: 12px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        
+        .alert-detail {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+        
+        .alert-badge {
+            display: inline-block;
+            font-size: 9px;
+            padding: 2px 4px;
+            border-radius: 4px;
+            background: var(--gradient-danger);
+            color: white;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+        
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-card-hover);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶栏 -->
+    <header class="top-bar">
+        <div class="logo">
+            <span class="logo-icon">📡</span>
+            <span class="logo-text">DX Guardian</span>
+        </div>
+        
+        <!-- 波段筛选 -->
+        <div class="band-filter">
+            <button class="band-btn">全部</button>
+            <button class="band-btn">160m</button>
+            <button class="band-btn">80m</button>
+            <button class="band-btn">40m</button>
+            <button class="band-btn active">
+                20m
+                <span class="band-count">12</span>
+            </button>
+            <button class="band-btn">
+                15m
+                <span class="band-count">5</span>
+            </button>
+            <button class="band-btn">10m</button>
+        </div>
+        
+        <div class="top-bar-right">
+            <!-- WebSocket 状态 -->
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span>已连接</span>
+            </div>
+            
+            <!-- 通知按钮 -->
+            <button class="notification-btn">
+                <span>🔔</span>
+                <span class="badge">3</span>
+            </button>
+            
+            <!-- 设置按钮 -->
+            <button class="icon-btn">⚙️</button>
+        </div>
+    </header>
+    
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 左侧面板 -->
+        <div class="left-panel">
+            <!-- 太阳数据卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <span>☀️ 太阳数据</span>
+                    <div class="card-actions">
+                        <button class="card-btn">🔄</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="solar-grid">
+                        <div class="solar-stat">
+                            <div class="stat-label">SFI</div>
+                            <div class="stat-value">156</div>
+                            <div class="stat-trend up">↑ +2.3</div>
+                        </div>
+                        <div class="solar-stat">
+                            <div class="stat-label">SSN</div>
+                            <div class="stat-value warning">88</div>
+                            <div class="stat-trend same">→ 0</div>
+                        </div>
+                        <div class="solar-stat">
+                            <div class="stat-label">K 指数</div>
+                            <div class="stat-value success">2.1</div>
+                            <div class="stat-trend down">↓ -0.5</div>
+                        </div>
+                        <div class="solar-stat">
+                            <div class="stat-label">A 指数</div>
+                            <div class="stat-value">12</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 系统状态卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <span>🔌 系统状态</span>
+                </div>
+                <div class="card-body">
+                    <div class="status-row">
+                        <span class="label">Spot 总数</span>
+                        <span class="value">847</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="label">活跃波段</span>
+                        <span class="value">6</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="label">WebSocket</span>
+                        <span class="value" style="color: var(--accent-success);">● 在线</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="label">运行时间</span>
+                        <span class="value">2h 34m</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 我的台站卡片 -->
+            <div class="card">
+                <div class="card-header">
+                    <span>📡 我的台站</span>
+                    <div class="card-actions">
+                        <button class="card-btn">✏️</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="status-row">
+                        <span class="label">呼号</span>
+                        <span class="value">BG2ENW</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="label">Grid</span>
+                        <span class="value">PN35HS</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="label">QTH</span>
+                        <span class="value">哈尔滨</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 地图区域 -->
+        <div class="map-area">
+            <div class="map-placeholder">
+                <div class="map-icon">🌍</div>
+                <div class="map-text">Leaflet 地图将在这里显示</div>
+                <p style="color: var(--text-muted); font-size: 12px;">点击按钮预览 Spot 标记动画</p>
+                <button onclick="addSpotDemo()" style="padding: 10px 24px; background: var(--gradient-accent); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    ✨ 添加演示 Spot
+                </button>
+            </div>
+            <!-- Spot 演示标记 -->
+            <div id="spot-container"></div>
+        </div>
+        
+        <!-- 右侧面板 -->
+        <div class="right-panel">
+            <!-- Tab 卡片 -->
+            <div class="card card-tabs">
+                <div class="card-header" style="border-radius: 12px 12px 0 0; padding: 0; overflow: hidden;">
+                    <div class="tab-header">
+                        <button class="tab-btn active" onclick="switchTab('watchlist')">🎯 关注</button>
+                        <button class="tab-btn" onclick="switchTab('alerts')">🔔 预警</button>
+                        <button class="tab-btn" onclick="switchTab('opportunities')">✨ 推荐</button>
+                    </div>
+                </div>
+                <div class="tab-content">
+                    <!-- 关注列表 -->
+                    <div class="tab-panel active" id="tab-watchlist">
+                        <div class="watchlist-item">
+                            <div>
+                                <div class="wl-call">JA1AAA</div>
+                                <div class="wl-type">呼号</div>
+                            </div>
+                        </div>
+                        <div class="watchlist-item" style="border-left-color: var(--accent-purple);">
+                            <div>
+                                <div class="wl-call">DXCC</div>
+                                <div class="wl-type">Japan</div>
+                            </div>
+                        </div>
+                        <div class="watchlist-item" style="border-left-color: var(--accent-warning);">
+                            <div>
+                                <div class="wl-call">20m</div>
+                                <div class="wl-type">波段</div>
+                            </div>
+                        </div>
+                        <button onclick="addWatchlistDemo()" style="width: 100%; padding: 8px; background: var(--bg-secondary); border: 1px dashed var(--border-medium); color: var(--text-secondary); border-radius: 8px; cursor: pointer; font-size: 12px;">
+                            + 添加关注
+                        </button>
+                    </div>
+                    
+                    <!-- 预警列表 -->
+                    <div class="tab-panel" id="tab-alerts">
+                        <div class="alert-item">
+                            <div class="alert-title">
+                                <span class="alert-badge">紧急</span>
+                                JA1AAA on 14.074 MHz
+                            </div>
+                            <div class="alert-detail">稀有 DXCC - Japan • 2 分钟前</div>
+                        </div>
+                        <div class="alert-item" style="border-left-color: var(--accent-warning);">
+                            <div class="alert-title">
+                                <span class="alert-badge" style="background: var(--gradient-warning);">重要</span>
+                                10m 波段开放
+                            </div>
+                            <div class="alert-detail">HF 传播预测 • 5 分钟前</div>
+                        </div>
+                        <div class="alert-item" style="border-left-color: var(--accent-success);">
+                            <div class="alert-title">
+                                <span class="alert-badge" style="background: var(--gradient-success);">普通</span>
+                                New DX: UA9
+                            </div>
+                            <div class="alert-detail">Asiatic Russia • 12 分钟前</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 推荐机会 -->
+                    <div class="tab-panel" id="tab-opportunities">
+                        <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                            正在加载推荐机会...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tab 切换
+        function switchTab(tabName) {
+            // 移除所有 active
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            // 添加 active
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+        
+        // Spot 演示
+        let spotCount = 0;
+        function addSpotDemo() {
+            spotCount++;
+            const container = document.getElementById('spot-container');
+            const spot = document.createElement('div');
+            spot.className = 'spot-marker';
+            
+            // 随机位置
+            const x = 20 + Math.random() * 60;
+            const y = 20 + Math.random() * 60;
+            spot.style.left = x + '%';
+            spot.style.top = y + '%';
+            
+            spot.innerHTML = `
+                <div class="spot-dot"></div>
+                <div class="spot-pulse"></div>
+            `;
+            
+            // 点击 Tooltip
+            spot.title = 'Demo Spot #' + spotCount + '\nClick to see details';
+            spot.onclick = () => {
+                alert('Spot #' + spotCount + '\nFrequency: 14.074 MHz\nDXCC: Japan\nTime: Just now');
+            };
+            
+            container.appendChild(spot);
+            
+            // 自动添加脉冲动画
+            setTimeout(() => {
+                spot.querySelector('.spot-dot').style.animation = 'pulse-ring 2s ease-out infinite';
+            }, 500);
+        }
+        
+        // 添加关注演示
+        function addWatchlistDemo() {
+            const list = document.querySelector('#tab-watchlist');
+            const item = document.createElement('div');
+            item.className = 'watchlist-item';
+            item.innerHTML = `
+                <div>
+                    <div class="wl-call">New Call</div>
+                    <div class="wl-type">呼号</div>
+                </div>
+            `;
+            list.insertBefore(item, list.lastElementChild);
+        }
+        
+        // 自动演示：每秒添加一个 Spot
+        let autoAddInterval;
+        function toggleAutoAdd() {
+            if (autoAddInterval) {
+                clearInterval(autoAddInterval);
+                autoAddInterval = null;
+            } else {
+                autoAddInterval = setInterval(addSpotDemo, 2000);
+                setTimeout(() => {
+                    clearInterval(autoAddInterval);
+                    autoAddInterval = null;
+                }, 10000); // 10 秒后停止
+            }
+        }
+        
+        // 页面加载后自动演示
+        setTimeout(() => {
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => addSpotDemo(), i * 300);
+            }
+        }, 500);
+    </script>
+</body>
+</html>

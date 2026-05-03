@@ -913,12 +913,16 @@ function createSpotMarker(spotData) {
         const marker = L.marker([spotData.lat, spotData.lon], {icon: icon}).addTo(map);
 
         const gridInfo = spotData.grid ? '<br/>📍 Grid: ' + spotData.grid : '';
+        const cqItuInfo = (spotData.cq || spotData.itu) ? 
+            '<br/>🗺️ CQ:' + (spotData.cq || '?') + ' ITU:' + (spotData.itu || '?') : '';
+        const lotwBadge = spotData.lotw_verified ? 
+            '<span style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:6px;">✓ LoTW</span>' : '';
         const sourceInfo = spotData.source === 'pskreporter' ? '<br/>📡 PSKReporter' : '<br/>📡 Cluster';
         const dxccLabel = spotData.dxcc ? '<br/>🏳️ ' + spotData.dxcc : '';
         const timeStr = spotData.time ? '<br/>🕐 ' + spotData.time : '';
-        const spotterInfo = spotData.spotter ? '<br/>📢 报告: ' + spotData.spotter : '';
+        const spotterInfo = spotData.spotter ? '<br/>📢 报告：' + spotData.spotter : '';
         const commentInfo = spotData.comment ? '<br/>💬 ' + spotData.comment : '';
-        const precisionLabel = spotData.precision === 'grid' ? ' (精确)' : (spotData.precision === 'dxcc' ? ' (国家)' : '');
+        const precisionLabel = spotData.precision === 'grid' ? ' (精确)' : (spotData.precision === 'cty' ? ' (CTY)' : (spotData.precision === 'dxcc' ? ' (国家)' : ''));
 
         marker.bindTooltip(
             '<div style="min-width:180px;">' +
