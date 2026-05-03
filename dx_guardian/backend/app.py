@@ -1025,7 +1025,7 @@ if __name__ == '__main__':
     log(f'   后端缓存: {SPOT_HISTORY_MAX} 条')
 
     # 初始化评分引擎
-    init_scorer()
+    pass  # scorer 暂缓
 
     # 启动 Flask-SocketIO 服务器
     socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
