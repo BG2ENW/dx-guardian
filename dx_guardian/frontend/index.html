@@ -509,7 +509,18 @@
             height: 100%;
         }
         .column-map.collapsed { width: 0 !important; overflow: hidden; }
-        #dx-map { width: 100%; flex: 1; min-height: 0; }
+        #dx-map { width: 100%; flex: 1; min-height: 0; position: relative; }
+        
+        /* Map controls - 确保始终可见，在地图容器内 */
+        .map-controls-top, .map-controls-bottom {
+            position: absolute !important;
+            z-index: 1000 !important;
+            pointer-events: auto;
+        }
+        .map-controls-top > button, .map-controls-bottom > button {
+            z-index: 1001;
+            pointer-events: auto;
+        }
         
         /* QSO Stats Panel */
         .map-qso-panel {
@@ -546,20 +557,74 @@
             color: var(--text-primary);
         }
         .qso-list {
-            max-height: 100px;
+            max-height: 120px;
             overflow-y: auto;
             font-size: 10px;
         }
         .qso-item {
             display: flex;
             justify-content: space-between;
-            padding: 3px 0;
+            align-items: center;
+            padding: 4px 0;
             border-bottom: 1px solid rgba(255,255,255,0.05);
+            gap: 6px;
         }
         .qso-item:last-child { border-bottom: none; }
-        .qso-callsign { color: var(--text-primary); font-weight: bold; }
-        .qso-time { color: var(--text-secondary); }
+        .qso-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+        .qso-callsign { 
+            color: var(--text-primary); 
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .qso-country {
+            color: var(--text-secondary);
+            font-size: 9px;
+            white-space: nowrap;
+        }
+        .qso-meta {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-shrink: 0;
+        }
         .qso-band { color: var(--accent-secondary); font-size: 9px; padding: 1px 4px; border-radius: 3px; background: rgba(76,175,80,0.2); }
+        .qso-mode { color: #2196F3; font-size: 9px; padding: 1px 4px; border-radius: 3px; background: rgba(33,150,243,0.2); }
+        .qso-signal { color: #FF5733; font-size: 9px; font-weight: bold; }
+        .qso-time { color: var(--text-secondary); font-size: 9px; min-width: 32px; text-align: right; }
+        
+        /* Map resize handle */
+        .map-resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .map-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
+        
+        /* Map height resize handle */
+        .map-height-resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            cursor: ns-resize;
+            background: transparent;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .map-height-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
         
         /* Map controls - 确保始终可见 */
         .map-controls-top, .map-controls-bottom {
@@ -1008,19 +1073,25 @@
                 </div>
             </div>
             
+            <!-- 地图容器 -->
             <div id="dx-map"></div>
-            <div class="map-height-resize-handle" id="map-height-resize-handle" title="拖动调整高度"></div>
-            <div class="map-controls-bottom" style="position:absolute;bottom:8px;left:8px;display:flex;flex-direction:column;gap:6px;z-index:1001;pointer-events:auto;">
+            
+            <!-- 底部控制按钮（左侧） -->
+            <div class="map-controls-bottom" style="position:absolute;bottom:10px;left:10px;display:flex;flex-direction:column;gap:6px;">
                 <button class="time-btn" onclick="zoomMap(1)">➕ 放大</button>
                 <button class="time-btn" onclick="zoomMap(-1)">➖ 缩小</button>
                 <button class="time-btn" onclick="resetMapZoom()">🌍 全球</button>
             </div>
-            <div class="map-controls-top" style="position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:1001;pointer-events:auto;">
+            
+            <!-- 顶部控制按钮（右侧） -->
+            <div class="map-controls-top" style="position:absolute;top:10px;right:10px;display:flex;gap:4px;">
                 <button class="time-btn" id="btn-heat" onclick="toggleHeatmap()">🔥 热力</button>
                 <button class="time-btn" id="btn-gray" onclick="toggleGrayline()">🌑 灰线</button>
                 <button class="time-btn" id="btn-grid" onclick="toggleGridOverlay()">📐 网格</button>
                 <button class="time-btn" onclick="closeMap()" title="关闭地图" style="background:rgba(233,69,96,0.3);border-color:#e94560;">✕</button>
             </div>
+            
+            <div class="map-height-resize-handle" id="map-height-resize-handle" title="拖动调整高度"></div>
         </div>
         
         <!-- Right Column -->

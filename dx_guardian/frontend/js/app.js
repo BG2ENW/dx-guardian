@@ -391,7 +391,7 @@ function updateQsoStats() {
     qsoHeardMe = [];
     
     // 从最近的 spot 中筛选
-    const recentSpots = spotHistory.slice(-50); // 只看最近 50 条
+    const recentSpots = spotHistory.slice(-100); // 看最近 100 条
     
     recentSpots.forEach(entry => {
         const spot = entry.spot;
@@ -406,25 +406,37 @@ function updateQsoStats() {
                 if (!qsoCallingMe.find(q => q.call === spot.de_call)) {
                     qsoCallingMe.push({
                         call: spot.de_call,
+                        country: spot.country || guessCountry(spot.de_call),
+                        freq: spot.freq || spot.de_freq || '',
+                        mode: spot.mode || '',
+                        signal: spot.signal || extractSignal(comments),
                         time: spot.time,
-                        band: spot.band,
-                        mode: spot.mode
+                        band: spot.band || freqToBand(spot.de_freq)
                     });
                 }
             }
-            if (comments.includes('HEARD') || comments.includes('抄收') || comments.includes('R ' + myCall)) {
+            if (comments.includes('HEARD') || comments.includes('抄收') || comments.includes('R ' + myCall) || comments.includes('RST')) {
                 // 其他台表示听到我
                 if (!qsoHeardMe.find(q => q.call === spot.de_call)) {
+                    // 从 comments 提取信号报告
+                    const rst = extractRST(comments);
                     qsoHeardMe.push({
                         call: spot.de_call,
+                        country: spot.country || guessCountry(spot.de_call),
+                        freq: spot.freq || spot.de_freq || '',
+                        mode: spot.mode || '',
+                        signal: rst || extractSignal(comments),
                         time: spot.time,
-                        band: spot.band,
-                        mode: spot.mode
+                        band: spot.band || freqToBand(spot.de_freq)
                     });
                 }
             }
         }
     });
+    
+    // 按时间排序，最新的在前
+    qsoCallingMe.sort((a, b) => new Date(b.time) - new Date(a.time));
+    qsoHeardMe.sort((a, b) => new Date(b.time) - new Date(a.time));
     
     // 更新显示
     renderQsoStats();
@@ -435,37 +447,80 @@ function renderQsoStats() {
     document.getElementById('qso-calling-me-count').textContent = qsoCallingMe.length;
     document.getElementById('qso-heard-me-count').textContent = qsoHeardMe.length;
     
-    // 更新呼叫我列表
+    // 更新呼叫我列表 - 显示 10 个最新的
     const callingList = document.getElementById('qso-calling-me-list');
     if (qsoCallingMe.length === 0) {
         callingList.innerHTML = '<div style="color:#888;">暂无数据</div>';
     } else {
-        callingList.innerHTML = qsoCallingMe.slice(0, 8).map(q => `
+        callingList.innerHTML = qsoCallingMe.slice(0, 10).map(q => `
             <div class="qso-item">
-                <span class="qso-callsign">${q.call}</span>
-                <div style="display:flex;gap:4px;align-items:center;">
-                    <span class="qso-band">${q.band || '--'}</span>
-                    <span class="qso-time">${formatQsoTime(q.time)}</span>
+                <div class="qso-info">
+                    <span class="qso-callsign">${q.call}</span>
+                    <span class="qso-country">${q.country || ''}</span>
                 </div>
+                <div class="qso-meta">
+                    <span class="qso-band">${q.band || '--'}</span>
+                    <span class="qso-mode">${q.mode || '--'}</span>
+                    <span class="qso-signal">${q.signal ? q.signal + 'dB' : ''}</span>
+                </div>
+                <span class="qso-time">${formatQsoTime(q.time)}</span>
             </div>
         `).join('');
     }
     
-    // 更新听到我列表
+    // 更新听到我列表 - 显示 10 个最新的
     const heardList = document.getElementById('qso-heard-me-list');
     if (qsoHeardMe.length === 0) {
         heardList.innerHTML = '<div style="color:#888;">暂无数据</div>';
     } else {
-        heardList.innerHTML = qsoHeardMe.slice(0, 8).map(q => `
+        heardList.innerHTML = qsoHeardMe.slice(0, 10).map(q => `
             <div class="qso-item">
-                <span class="qso-callsign">${q.call}</span>
-                <div style="display:flex;gap:4px;align-items:center;">
-                    <span class="qso-band">${q.band || '--'}</span>
-                    <span class="qso-time">${formatQsoTime(q.time)}</span>
+                <div class="qso-info">
+                    <span class="qso-callsign">${q.call}</span>
+                    <span class="qso-country">${q.country || ''}</span>
                 </div>
+                <div class="qso-meta">
+                    <span class="qso-band">${q.band || '--'}</span>
+                    <span class="qso-mode">${q.mode || '--'}</span>
+                    <span class="qso-signal">${q.signal ? ((q.signal>0)?'+':'') + q.signal : ''}</span>
+                </div>
+                <span class="qso-time">${formatQsoTime(q.time)}</span>
             </div>
         `).join('');
     }
+}
+
+function guessCountry(callsign) {
+    // 简单的前缀判断国家
+    const prefix = callsign.substring(0, 2).toUpperCase();
+    const countryMap = {
+        'BG': '中国', 'BI': '中国', 'BD': '中国', 'BV': '中国', 'BA': '中国',
+        'JA': '日本', 'JE': '日本', 'JH': '日本', 'JI': '日本', 'JK': '日本',
+        'HL': '韩国', 'DS': '韩国', 'DT': '韩国', 'DF': '韩国',
+        'W': '美国', 'K': '美国', 'N': '美国', 'AA': '美国',
+        'G': '英国', 'M': '英国', '2': '英国',
+        'F': '法国', 'PA': '荷兰', 'DH': '德国', 'DK': '德国', 'DL': '德国',
+        'I': '意大利', 'EA': '西班牙', 'EB': '西班牙', 'EC': '西班牙',
+        'UA': '俄罗斯', 'UB': '俄罗斯', 'UC': '俄罗斯', 'R': '俄罗斯',
+        'VK': '澳大利亚', 'AX': '澳大利亚', 'VE': '加拿大', 'VA': '加拿大'
+    };
+    return countryMap[prefix] || countryMap[callsign.substring(0, 1)] || '';
+}
+
+function extractSignal(comments) {
+    // 从 comments 提取信号强度 (如 -18 dB, 59 等)
+    const match = comments.match(/(-?\d+)\s?DB/);
+    if (match) return parseInt(match[1]);
+    const rstMatch = comments.match(/\b(\d)(\d)(\d)\b/);
+    if (rstMatch) return parseInt(rstMatch[3]);
+    return null;
+}
+
+function extractRST(comments) {
+    // 提取 RST 信号报告的第 3 位（信号强度）
+    const match = comments.match(/\b(\d)(\d)(\d)\b/);
+    if (match) return parseInt(match[3]);
+    return null;
 }
 
 function formatQsoTime(isoTime) {
@@ -476,12 +531,31 @@ function formatQsoTime(isoTime) {
         const diff = Math.floor((now - date) / 60000); // 分钟
         
         if (diff < 1) return '刚刚';
-        if (diff < 60) return diff + '分前';
-        if (diff < 1440) return Math.floor(diff / 60) + '小时前';
+        if (diff < 60) return diff + ' 分前';
+        if (diff < 1440) return Math.floor(diff / 60) + ' 小时前';
         return date.toLocaleTimeString('zh-CN', {hour: '2-digit', minute:'2-digit'});
     } catch {
         return '--';
     }
+}
+
+function freqToBand(freqKhz) {
+    if (!freqKhz) return '';
+    const freqMhz = parseFloat(freqKhz) / 1000;
+    if (freqMhz < 2) return '160m';
+    if (freqMhz < 4) return '80m';
+    if (freqMhz < 5.5) return '60m';
+    if (freqMhz < 8) return '40m';
+    if (freqMhz < 11) return '30m';
+    if (freqMhz < 15) return '20m';
+    if (freqMhz < 19) return '17m';
+    if (freqMhz < 22) return '15m';
+    if (freqMhz < 25) return '12m';
+    if (freqMhz < 30) return '10m';
+    if (freqMhz < 60) return '6m';
+    if (freqMhz < 150) return '2m';
+    if (freqMhz < 500) return '70cm';
+    return '';
 }
 
 async function loadSolarData() {
