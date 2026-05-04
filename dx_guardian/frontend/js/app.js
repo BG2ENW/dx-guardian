@@ -453,6 +453,21 @@ document.addEventListener('DOMContentLoaded', () => {
 // ========== 传播预测面板 ==========
 function initMap() {
     map = L.map('dx-map').setView([MY_STATION.lat, MY_STATION.lon], 3);
+    
+    // 设置控件容器 z-index，确保按钮始终可见
+    setTimeout(() => {
+        const zoomControl = document.querySelector('.leaflet-control-zoom');
+        const attribution = document.querySelector('.leaflet-control-container .leaflet-control-attribution');
+        if (zoomControl) zoomControl.style.zIndex = '999';
+        if (attribution) attribution.style.zIndex = '999';
+        
+        // 确保自定义控件始终在最上层
+        const topControls = document.querySelector('.map-controls-top');
+        const bottomControls = document.querySelector('.map-controls-bottom');
+        if (topControls) topControls.style.zIndex = '1001';
+        if (bottomControls) bottomControls.style.zIndex = '1001';
+    }, 100);
+    
     L.tileLayer('https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
         attribution: '&copy; 高德地图',
         maxZoom: 19,

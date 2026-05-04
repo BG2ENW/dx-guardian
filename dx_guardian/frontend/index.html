@@ -508,6 +508,15 @@
         .column-map.collapsed { width: 0 !important; overflow: hidden; }
         #dx-map { width: 100%; height: 100%; }
         
+        /* Map controls - 确保始终可见 */
+        .map-controls-top, .map-controls-bottom {
+            z-index: 1000 !important;
+        }
+        .map-controls-top > button, .map-controls-bottom > button {
+            z-index: 1001;
+            pointer-events: auto;
+        }
+        
         /* Map resize handle */
         .map-resize-handle {
             position: absolute;
@@ -908,16 +917,16 @@
         <div class="column-map" id="column-map">
             <div class="map-resize-handle" id="map-resize-handle" title="拖动调整宽度"></div>
             <div id="dx-map"></div>
-            <div style="position:absolute;bottom:8px;left:8px;display:flex;flex-direction:column;gap:6px;z-index:100;pointer-events:auto;">
+            <div class="map-controls-bottom" style="position:absolute;bottom:8px;left:8px;display:flex;flex-direction:column;gap:6px;z-index:1001;pointer-events:auto;">
                 <button class="time-btn" onclick="zoomMap(1)">➕ 放大</button>
                 <button class="time-btn" onclick="zoomMap(-1)">➖ 缩小</button>
                 <button class="time-btn" onclick="resetMapZoom()">🌍 全球</button>
             </div>
-            <div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:100;pointer-events:auto;">
+            <div class="map-controls-top" style="position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:1001;pointer-events:auto;">
                 <button class="time-btn" id="btn-heat" onclick="toggleHeatmap()">🔥 热力</button>
                 <button class="time-btn" id="btn-gray" onclick="toggleGrayline()">🌑 灰线</button>
                 <button class="time-btn" id="btn-grid" onclick="toggleGridOverlay()">📐 网格</button>
-                <button class="time-btn" onclick="closeMap()" title="关闭地图">✕</button>
+                <button class="time-btn" onclick="closeMap()" title="关闭地图" style="background:rgba(233,69,96,0.3);border-color:#e94560;">✕</button>
             </div>
         </div>
         
