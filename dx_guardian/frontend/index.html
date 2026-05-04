@@ -478,7 +478,7 @@
         /* ===== Main Layout ===== */
         .layout {
             display: grid;
-            grid-template-columns: 280px 1fr 360px;
+            grid-template-columns: 280px minmax(25%, 35%) minmax(30%, 1fr) 360px;
             gap: 0;
             height: calc(100vh - 48px);
         }
@@ -499,6 +499,13 @@
         .column::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
         .column::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
         
+        /* ===== QSO Column ===== */
+        .column-map-qso {
+            background: var(--bg-primary);
+            overflow: hidden;
+            border-right: 1px solid var(--border-color);
+        }
+        
         /* ===== Map Column ===== */
         .column-map {
             position: relative;
@@ -507,20 +514,9 @@
             display: flex;
             flex-direction: column;
             height: 100%;
-            min-width: 30%;
-            max-width: 70%;
         }
         .column-map.collapsed { width: 0 !important; overflow: hidden; }
         #dx-map { width: 100%; flex: 1; min-height: 0; position: relative; }
-        
-        /* QSO Column - 始终保持可见 */
-        .column-map-qso {
-            width: 35%;
-            min-width: 25%;
-            max-width: 45%;
-            background: var(--bg-primary);
-            transition: width 0.3s ease;
-        }
         
         /* Map Module Border & Header */
         .map-module-container {
@@ -1001,11 +997,12 @@
 
         /* 响应式 */
         @media (max-width: 1024px) {
-            .layout { grid-template-columns: 220px 1fr 280px; }
+            .layout { grid-template-columns: 220px minmax(30%, 35%) minmax(25%, 1fr) 280px; }
         }
         @media (max-width: 768px) {
-            .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
-            .column-left, .column-right { max-height: 30vh; }
+            .layout { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr auto; }
+            .column-left, .column-right, .column-map-qso { max-height: 30vh; }
+            .column-map { min-height: 50vh; }
         }
     </style>
 </head>
