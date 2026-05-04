@@ -537,8 +537,11 @@ def on_connect():
         bc = dict(band_counts)
         ts = total_spots
         cc = cluster_connected
+        # PSK Reporter: 如果最近 10 分钟内有成功获取，则认为已连接
+        psk_connected = (time.time() - last_psk_success) < 600
     socketio.emit('server_status', {
         'cluster_connected': cc,
+        'psk_connected': psk_connected,
         'band_counts': bc,
         'total_spots': ts
     })

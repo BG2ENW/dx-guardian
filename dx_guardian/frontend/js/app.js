@@ -825,6 +825,7 @@ function initSocket() {
     // 服务器状态
     socket.on('server_status', (data) => {
         updateConnectionStatus(data.cluster_connected || data.connected);
+        updateSystemStatus(data);
         if (data.band_counts) {
             bandCounts = {...bandCounts, ...data.band_counts};
             for (const band in data.band_counts) {
