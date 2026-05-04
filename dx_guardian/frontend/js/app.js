@@ -422,6 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSolarData();
     setInterval(loadSolarData, 300000);
     initMap();
+    initMapResize();
     initSocket();
     renderBandBar();
     loadHistory();
@@ -432,7 +433,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.getElementById('cache-count');
         if (el) el.textContent = spotHistory.length;
     }, 5000);
-    setInterval(cleanupExpiredMarkers, 30000);
     setInterval(() => { if (showHeatmap) updateHeatmap(); }, 30000);
     loadPropagation();
     setInterval(loadPropagation, 300000);
@@ -510,29 +510,33 @@ function addMyStationMarker() {
 
 // 热点图功能
 function toggleHeatmap() {
+    if (!map) return;
     showHeatmap = !showHeatmap;
+    const btn = document.getElementById('btn-heat');
     if (showHeatmap) {
         updateHeatmap();
         heatLayer.addTo(map);
-        document.getElementById('btn-heat').classList.add('active');
+        if (btn) btn.classList.add('active');
     } else {
         map.removeLayer(heatLayer);
-        document.getElementById('btn-heat').classList.remove('active');
+        if (btn) btn.classList.remove('active');
     }
 }
 
 function updateHeatmap() {
-    if (!heatLayer) return;
+    if (!heatLayer || !map) return;
     
     // 从 spotHistory 提取坐标数据 [lat, lon, intensity]
     const heatData = spotHistory
-        .filter(entry => entry.marker) // 只取可见的标记
+        .filter(entry => entry.marker && entry.spot.lat && entry.spot.lon)
         .map(entry => {
             const spot = entry.spot;
-            return [spot.lat, spot.lon, 1.0]; // 强度统一为 1，后续可优化
+            return [spot.lat, spot.lon, 1.0];
         });
     
-    heatLayer.setLatLngs(heatData);
+    if (heatData.length > 0) {
+        heatLayer.setLatLngs(heatData);
+    }
 }
 
 // 地图缩放控制
@@ -547,6 +551,76 @@ function resetMapZoom() {
     map.setView([20, 0], 2);
 }
 
+// ========== 地图显示控制 ==========
+let mapResizing = false;
+let mapWidth = 65; // 默认宽度百分比
+
+function closeMap() {
+    const column = document.getElementById('column-map');
+    const toggleBtn = document.getElementById('map-toggle-btn');
+    if (column) column.style.display = 'none';
+    if (toggleBtn) toggleBtn.classList.remove('hidden');
+    if (map) {
+        map.invalidateSize();
+    }
+}
+
+function toggleMap() {
+    const column = document.getElementById('column-map');
+    const toggleBtn = document.getElementById('map-toggle-btn');
+    if (!column) return;
+    
+    if (column.style.display === 'none') {
+        column.style.display = 'block';
+        column.style.width = mapWidth + '%';
+        if (toggleBtn) toggleBtn.classList.add('hidden');
+        setTimeout(() => {
+            if (map) {
+                map.invalidateSize();
+            }
+        }, 300);
+    } else {
+        closeMap();
+    }
+}
+
+function initMapResize() {
+    const handle = document.getElementById('map-resize-handle');
+    const column = document.getElementById('column-map');
+    if (!handle || !column) return;
+    
+    handle.addEventListener('mousedown', function(e) {
+        mapResizing = true;
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+        if (!mapResizing) return;
+        
+        const containerWidth = document.querySelector('.main-layout').clientWidth;
+        const newWidth = ((e.clientX - 400) / containerWidth) * 100;
+        
+        if (newWidth > 30 && newWidth < 70) {
+            column.style.width = newWidth + '%';
+            mapWidth = newWidth;
+            if (map) {
+                map.invalidateSize();
+            }
+        }
+    });
+    
+    document.addEventListener('mouseup', function() {
+        if (mapResizing) {
+            mapResizing = false;
+            document.body.style.cursor = '';
+            if (map) {
+                map.invalidateSize();
+            }
+        }
+    });
+}
+
 // ========== 灰线覆盖层 ==========
 let showGrayline = false;
 let graylineLayer = null;
@@ -554,14 +628,15 @@ let graylineUpdateTimer = null;
 
 // ========== Maidenhead Grid 网格显示 ==========
 function toggleGridOverlay() {
+    if (!map) return;
     showGridOverlay = !showGridOverlay;
     const btn = document.getElementById('btn-grid');
     
     if (showGridOverlay) {
-        btn.classList.add('active');
+        if (btn) btn.classList.add('active');
         renderGridOverlay();
     } else {
-        btn.classList.remove('active');
+        if (btn) btn.classList.remove('active');
         if (gridOverlayLayer) {
             map.removeLayer(gridOverlayLayer);
             gridOverlayLayer.clearLayers();
@@ -688,22 +763,27 @@ function updateGridOnMove() {
 }
 
 async function toggleGrayline() {
+    if (!map) return;
     showGrayline = !showGrayline;
     const btn = document.getElementById('btn-gray');
     
     if (showGrayline) {
-        btn.classList.add('active');
-        btn.style.background = 'rgba(255,215,0,0.5)';
+        if (btn) btn.classList.add('active');
         await loadGrayline();
-        // 每5分钟更新灰线
+        // 每 5 分钟更新灰线
         graylineUpdateTimer = setInterval(loadGrayline, 300000);
     } else {
-        btn.classList.remove('active');
-        btn.style.background = 'rgba(255,215,0,0.3)';
+        if (btn) btn.classList.remove('active');
         if (graylineLayer) {
             map.removeLayer(graylineLayer);
             graylineLayer = null;
         }
+        if (graylineUpdateTimer) {
+            clearInterval(graylineUpdateTimer);
+            graylineUpdateTimer = null;
+        }
+    }
+}
         if (graylineUpdateTimer) {
             clearInterval(graylineUpdateTimer);
             graylineUpdateTimer = null;
@@ -724,6 +804,8 @@ async function loadGrayline() {
 }
 
 function renderGrayline(geojson) {
+    if (!map) return;
+    
     // 移除旧图层
     if (graylineLayer) {
         map.removeLayer(graylineLayer);
@@ -762,7 +844,7 @@ function renderGrayline(geojson) {
     const sunsetFeature = geojson.features.find(f => f.properties.type === 'sunset');
     
     if (sunriseFeature && sunsetFeature) {
-        const sunriseCoords = sunriseFeature.geometry.coordinates.map(c => [c[1], c[0]]); // [lat, lon]
+        const sunriseCoords = sunriseFeature.geometry.coordinates.map(c => [c[1], c[0]]);
         const sunsetCoords = sunsetFeature.geometry.coordinates.map(c => [c[1], c[0]]);
         
         // 构建夜晚多边形：日出线 → 北极 → 日落线反向 → 南极
