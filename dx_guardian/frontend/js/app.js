@@ -770,16 +770,15 @@ let qsoHeightResizing = false; // QSO 模块高度调整中
 let qsoHeightPercent = 25; // QSO 模块默认高度百分比
 
 function closeMap() {
-    const column = document.getElementById('column-map');
+    const wrapper = document.getElementById('map-module-wrapper');
     const toggleBtn = document.getElementById('map-toggle-btn');
     
-    if (column) {
-        column.style.display = 'none';
-        column.classList.add('collapsed');
+    if (wrapper) {
+        wrapper.style.display = 'none';
     }
     if (toggleBtn) {
         toggleBtn.classList.remove('hidden');
-        toggleBtn.style.right = '240px'; // 初始位置
+        toggleBtn.style.right = '240px';
     }
     mapClosed = true;
     
@@ -789,14 +788,12 @@ function closeMap() {
 }
 
 function toggleMap() {
-    const column = document.getElementById('column-map');
+    const wrapper = document.getElementById('map-module-wrapper');
     const toggleBtn = document.getElementById('map-toggle-btn');
-    if (!column) return;
+    if (!wrapper) return;
     
     if (mapClosed) {
-        column.style.display = 'block';
-        column.style.width = mapWidth + '%';
-        column.classList.remove('collapsed');
+        wrapper.style.display = 'block';
         if (toggleBtn) toggleBtn.classList.add('hidden');
         mapClosed = false;
         setTimeout(() => {
@@ -859,9 +856,9 @@ function toggleMap() {
 
 function initMapResize() {
     const handle = document.getElementById('map-resize-handle');
-    const column = document.getElementById('column-map');
+    const wrapper = document.getElementById('map-module-wrapper');
     const moduleContainer = document.querySelector('.map-module-container');
-    if (!handle || !column) return;
+    if (!handle || !wrapper) return;
     
     handle.addEventListener('mousedown', function(e) {
         mapResizing = true;
@@ -873,12 +870,12 @@ function initMapResize() {
     document.addEventListener('mousemove', function(e) {
         if (!mapResizing) return;
         
-        // 计算新宽度：从左侧列右侧 (240px) 到鼠标位置
+        // 计算新宽度百分比
         const containerWidth = window.innerWidth;
-        const newWidth = ((e.clientX - 240) / containerWidth) * 100;
+        const newWidth = ((e.clientX - 280) / containerWidth) * 100;
         
         if (newWidth > 30 && newWidth < 70) {
-            column.style.width = newWidth + '%';
+            wrapper.style.width = newWidth + '%';
             mapWidth = newWidth;
             if (map) {
                 map.invalidateSize();
@@ -900,9 +897,9 @@ function initMapResize() {
 
 function initMapHeightResize() {
     const handle = document.getElementById('map-height-resize-handle');
-    const column = document.getElementById('column-map');
+    const wrapper = document.getElementById('map-module-wrapper');
     const moduleContainer = document.querySelector('.map-module-container');
-    if (!handle || !column) return;
+    if (!handle || !wrapper) return;
     
     handle.addEventListener('mousedown', function(e) {
         mapHeightResizing = true;
@@ -914,12 +911,16 @@ function initMapHeightResize() {
     document.addEventListener('mousemove', function(e) {
         if (!mapHeightResizing) return;
         
-        // 计算新高度（从视口顶部到鼠标位置）
-        const viewportHeight = window.innerHeight;
-        const newHeight = (e.clientY / viewportHeight) * 100;
+        // 计算中间列内的高度百分比
+        const middleCol = document.getElementById('column-middle');
+        if (!middleCol) return;
+        
+        const rect = middleCol.getBoundingClientRect();
+        const newHeight = ((e.clientY - rect.top) / rect.height) * 100;
         
         if (newHeight > 30 && newHeight < 90) {
-            column.style.height = newHeight + 'vh';
+            document.querySelector('.qso-module-wrapper').style.flex = `0 0 ${100-newHeight}%`;
+            wrapper.style.flex = `${newHeight}%`;
             mapHeightPercent = newHeight;
             if (map) {
                 map.invalidateSize();
@@ -941,26 +942,30 @@ function initMapHeightResize() {
 
 function initQsoHeightResize() {
     const handle = document.getElementById('qso-height-resize-handle');
-    const qsoModule = document.getElementById('qso-module-container');
-    if (!handle || !qsoModule) return;
+    const qsoWrapper = document.querySelector('.qso-module-wrapper');
+    const moduleContainer = document.getElementById('qso-module-container');
+    if (!handle || !qsoWrapper) return;
     
     handle.addEventListener('mousedown', function(e) {
         qsoHeightResizing = true;
         document.body.style.cursor = 'ns-resize';
-        qsoModule.classList.add('resizing');
+        if (moduleContainer) moduleContainer.classList.add('resizing');
         e.preventDefault();
     });
     
     document.addEventListener('mousemove', function(e) {
         if (!qsoHeightResizing) return;
         
-        // 计算新高度（从 QSO 模块顶部到鼠标位置）
-        const qsoRect = qsoModule.getBoundingClientRect();
-        const newHeight = e.clientY - qsoRect.top;
+        // 计算中间列内的高度百分比
+        const middleCol = document.getElementById('column-middle');
+        if (!middleCol) return;
         
-        if (newHeight > 150 && newHeight < 500) {
-            qsoModule.style.height = newHeight + 'px';
-            qsoHeightPercent = (newHeight / window.innerHeight) * 100;
+        const rect = middleCol.getBoundingClientRect();
+        const newHeight = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        if (newHeight > 15 && newHeight < 50) {
+            qsoWrapper.style.flex = `0 0 ${newHeight}%`;
+            qsoHeightPercent = newHeight;
         }
     });
     
@@ -968,7 +973,7 @@ function initQsoHeightResize() {
         if (qsoHeightResizing) {
             qsoHeightResizing = false;
             document.body.style.cursor = '';
-            qsoModule.classList.remove('resizing');
+            if (moduleContainer) moduleContainer.classList.remove('resizing');
         }
     });
 }
