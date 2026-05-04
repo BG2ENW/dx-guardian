@@ -554,14 +554,24 @@ function resetMapZoom() {
 // ========== 地图显示控制 ==========
 let mapResizing = false;
 let mapWidth = 65; // 默认宽度百分比
+let mapClosed = false; // 地图是否已关闭
 
 function closeMap() {
     const column = document.getElementById('column-map');
     const toggleBtn = document.getElementById('map-toggle-btn');
-    if (column) column.style.display = 'none';
-    if (toggleBtn) toggleBtn.classList.remove('hidden');
+    
+    if (column) {
+        column.style.display = 'none';
+        column.classList.add('collapsed');
+    }
+    if (toggleBtn) {
+        toggleBtn.classList.remove('hidden');
+        toggleBtn.style.right = '240px'; // 初始位置
+    }
+    mapClosed = true;
+    
     if (map) {
-        map.invalidateSize();
+        setTimeout(() => map.invalidateSize(), 300);
     }
 }
 
@@ -570,13 +580,19 @@ function toggleMap() {
     const toggleBtn = document.getElementById('map-toggle-btn');
     if (!column) return;
     
-    if (column.style.display === 'none') {
+    if (mapClosed) {
         column.style.display = 'block';
         column.style.width = mapWidth + '%';
+        column.classList.remove('collapsed');
         if (toggleBtn) toggleBtn.classList.add('hidden');
+        mapClosed = false;
         setTimeout(() => {
             if (map) {
                 map.invalidateSize();
+                // 重新添加图层
+                if (showHeatmap && heatLayer) heatLayer.addTo(map);
+                if (showGrayline && graylineLayer) graylineLayer.addTo(map);
+                if (showGridOverlay && gridOverlayLayer) gridOverlayLayer.addTo(map);
             }
         }, 300);
     } else {
@@ -598,8 +614,9 @@ function initMapResize() {
     document.addEventListener('mousemove', function(e) {
         if (!mapResizing) return;
         
-        const containerWidth = document.querySelector('.main-layout').clientWidth;
-        const newWidth = ((e.clientX - 400) / containerWidth) * 100;
+        // 计算新宽度：从左侧列右侧 (240px) 到鼠标位置
+        const containerWidth = window.innerWidth;
+        const newWidth = ((e.clientX - 240) / containerWidth) * 100;
         
         if (newWidth > 30 && newWidth < 70) {
             column.style.width = newWidth + '%';

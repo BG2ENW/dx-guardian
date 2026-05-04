@@ -522,16 +522,17 @@
         }
         .map-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
         
-        /* Map toggle button */
+        /* Map toggle button - 固定在左侧列右边 */
         .map-toggle-btn {
-            position: absolute;
-            top: 8px;
-            left: -32px;
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 240px; /* 左侧列宽度 240px */
             width: 28px;
-            height: 36px;
+            height: 60px;
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 6px 0 0 6px;
+            border-radius: 0 6px 6px 0;
             color: var(--accent-primary);
             font-size: 14px;
             display: flex;
@@ -540,8 +541,12 @@
             cursor: pointer;
             z-index: 1001;
             transition: all 0.3s;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.2);
         }
-        .map-toggle-btn:hover { background: rgba(233, 69, 96, 0.2); }
+        .map-toggle-btn:hover { 
+            background: rgba(233, 69, 96, 0.2);
+            left: 235px;
+        }
         .map-toggle-btn.hidden { display: none; }
         
         /* ===== Draggable Cards ===== */
