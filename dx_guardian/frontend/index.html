@@ -1113,6 +1113,36 @@
         <!-- Map Column -->
         <button class="map-toggle-btn hidden" id="map-toggle-btn" onclick="toggleMap()">🌍</button>
         <div class="column-map" id="column-map" style="height: 80vh;">
+            <!-- My Spots 独立模块 -->
+            <div class="qso-module-container" style="margin-bottom:10px;">
+                <div class="qso-module-header">
+                    <span>📡 My Spots</span>
+                </div>
+                <div class="map-qso-panel" style="border:none;background:transparent;">
+                    <div class="qso-stats-row" style="padding:0;">
+                        <div class="qso-stat-item">
+                            <div class="qso-stat-header">
+                                <span class="qso-stat-title">📢 呼叫我电台</span>
+                                <span class="qso-stat-count" id="qso-calling-me-count">0</span>
+                            </div>
+                            <div class="qso-list" id="qso-calling-me-list">
+                                <div style="color:#888;">暂无数据</div>
+                            </div>
+                        </div>
+                        <div class="qso-stat-item">
+                            <div class="qso-stat-header">
+                                <span class="qso-stat-title">📡 收到我电台</span>
+                                <span class="qso-stat-count" id="qso-heard-me-count">0</span>
+                            </div>
+                            <div class="qso-list" id="qso-heard-me-list">
+                                <div style="color:#888;">暂无数据</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 地图模块 -->
             <div class="map-module-container">
                 <!-- 地图模块标题栏 -->
                 <div class="map-module-header">
@@ -1126,35 +1156,6 @@
                 <!-- 地图内容区 -->
                 <div class="map-module-content">
                     <div class="map-resize-handle" id="map-resize-handle" title="拖动调整宽度"></div>
-                    
-                    <!-- QSO 统计面板 -->
-                    <div class="qso-module-container" style="margin:10px;">
-                        <div class="qso-module-header">
-                            <span>📡 My Spots</span>
-                        </div>
-                        <div class="map-qso-panel" style="border:none;background:transparent;">
-                            <div class="qso-stats-row" style="padding:0;">
-                                <div class="qso-stat-item">
-                                    <div class="qso-stat-header">
-                                        <span class="qso-stat-title">📢 呼叫我电台</span>
-                                        <span class="qso-stat-count" id="qso-calling-me-count">0</span>
-                                    </div>
-                                    <div class="qso-list" id="qso-calling-me-list">
-                                        <div style="color:#888;">暂无数据</div>
-                                    </div>
-                                </div>
-                                <div class="qso-stat-item">
-                                    <div class="qso-stat-header">
-                                        <span class="qso-stat-title">📡 收到我电台</span>
-                                        <span class="qso-stat-count" id="qso-heard-me-count">0</span>
-                                    </div>
-                                    <div class="qso-list" id="qso-heard-me-list">
-                                        <div style="color:#888;">暂无数据</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     
                     <!-- 地图容器 -->
                     <div id="dx-map"></div>
