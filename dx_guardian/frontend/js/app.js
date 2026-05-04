@@ -784,12 +784,6 @@ async function toggleGrayline() {
         }
     }
 }
-        if (graylineUpdateTimer) {
-            clearInterval(graylineUpdateTimer);
-            graylineUpdateTimer = null;
-        }
-    }
-}
 
 async function loadGrayline() {
     try {
