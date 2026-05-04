@@ -813,6 +813,50 @@ function toggleMap() {
     }
 }
 
+function closeMap() {
+    const column = document.getElementById('column-map');
+    const toggleBtn = document.getElementById('map-toggle-btn');
+    
+    if (column) {
+        column.style.display = 'none';
+        column.classList.add('collapsed');
+    }
+    if (toggleBtn) {
+        toggleBtn.classList.remove('hidden');
+        toggleBtn.style.right = '240px'; // 初始位置
+    }
+    mapClosed = true;
+    
+    if (map) {
+        setTimeout(() => map.invalidateSize(), 300);
+    }
+}
+
+function toggleMap() {
+    const column = document.getElementById('column-map');
+    const toggleBtn = document.getElementById('map-toggle-btn');
+    if (!column) return;
+    
+    if (mapClosed) {
+        column.style.display = 'block';
+        column.style.width = mapWidth + '%';
+        column.classList.remove('collapsed');
+        if (toggleBtn) toggleBtn.classList.add('hidden');
+        mapClosed = false;
+        setTimeout(() => {
+            if (map) {
+                map.invalidateSize();
+                // 重新添加图层
+                if (showHeatmap && heatLayer) heatLayer.addTo(map);
+                if (showGrayline && graylineLayer) graylineLayer.addTo(map);
+                if (showGridOverlay && gridOverlayLayer) gridOverlayLayer.addTo(map);
+            }
+        }, 300);
+    } else {
+        closeMap();
+    }
+}
+
 function initMapResize() {
     const handle = document.getElementById('map-resize-handle');
     const column = document.getElementById('column-map');

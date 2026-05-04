@@ -507,9 +507,20 @@
             display: flex;
             flex-direction: column;
             height: 100%;
+            min-width: 30%;
+            max-width: 70%;
         }
         .column-map.collapsed { width: 0 !important; overflow: hidden; }
         #dx-map { width: 100%; flex: 1; min-height: 0; position: relative; }
+        
+        /* QSO Column - 始终保持可见 */
+        .column-map-qso {
+            width: 35%;
+            min-width: 25%;
+            max-width: 45%;
+            background: var(--bg-primary);
+            transition: width 0.3s ease;
+        }
         
         /* Map Module Border & Header */
         .map-module-container {
@@ -1131,14 +1142,15 @@
         
         <!-- Map Column -->
         <button class="map-toggle-btn hidden" id="map-toggle-btn" onclick="toggleMap()">🌍</button>
-        <div class="column-map" id="column-map" style="height: 80vh;">
-            <!-- My Spots 独立模块 -->
-            <div class="qso-module-container" id="qso-module-container" style="margin-bottom:10px;position:relative;">
+        
+        <!-- My Spots 模块 -->
+        <div class="column-map-qso" id="column-map-qso">
+            <div class="qso-module-container" id="qso-module-container" style="height:100%;position:relative;">
                 <div class="qso-module-header">
                     <span>📡 My Spots</span>
                     <div style="font-size:10px;color:var(--text-secondary);font-weight:normal;">拖动下边框可调整高度</div>
                 </div>
-                <div id="qso-module-content" style="position:relative;">
+                <div id="qso-module-content" style="position:relative;height:calc(100% - 40px);overflow:hidden;">
                     <div class="map-qso-panel" style="border:none;background:transparent;">
                         <div class="qso-stats-row" style="padding:0;">
                             <div class="qso-stat-item">
@@ -1164,8 +1176,10 @@
                 </div>
                 <div class="qso-height-resize-handle" id="qso-height-resize-handle" title="拖动调整高度"></div>
             </div>
-            
-            <!-- 地图模块 -->
+        </div>
+        
+        <!-- 地图模块 -->
+        <div class="column-map" id="column-map" style="height: 80vh;">
             <div class="map-module-container">
                 <!-- 地图模块标题栏 -->
                 <div class="map-module-header">
