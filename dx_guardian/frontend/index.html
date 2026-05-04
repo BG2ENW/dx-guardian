@@ -511,6 +511,72 @@
         .column-map.collapsed { width: 0 !important; overflow: hidden; }
         #dx-map { width: 100%; flex: 1; min-height: 0; position: relative; }
         
+        /* Map Module Border & Header */
+        .map-module-container {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: var(--bg-card);
+            transition: border-color 0.3s;
+            position: relative;
+        }
+        .map-module-container:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 12px rgba(233, 69, 96, 0.2);
+        }
+        .map-module-container.resizing {
+            border-color: var(--accent-primary);
+        }
+        .map-module-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(120,140,160,0.15);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--accent-primary);
+            flex-shrink: 0;
+        }
+        .map-module-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .map-module-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            position: relative;
+        }
+        
+        /* QSO Module Border */
+        .qso-module-container {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg-card);
+            transition: border-color 0.3s;
+        }
+        .qso-module-container:hover {
+            border-color: var(--accent-primary);
+        }
+        .qso-module-header {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(120,140,160,0.15);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--accent-primary);
+        }
+        
         /* Map controls - 确保始终可见，在地图容器内 */
         .map-controls-top, .map-controls-bottom {
             position: absolute !important;
@@ -1047,51 +1113,70 @@
         <!-- Map Column -->
         <button class="map-toggle-btn hidden" id="map-toggle-btn" onclick="toggleMap()">🌍</button>
         <div class="column-map" id="column-map" style="height: 80vh;">
-            <div class="map-resize-handle" id="map-resize-handle" title="拖动调整宽度"></div>
-            
-            <!-- QSO 统计面板 -->
-            <div class="map-qso-panel">
-                <div class="qso-stats-row">
-                    <div class="qso-stat-item">
-                        <div class="qso-stat-header">
-                            <span class="qso-stat-title">📢 呼叫我电台</span>
-                            <span class="qso-stat-count" id="qso-calling-me-count">0</span>
+            <div class="map-module-container">
+                <!-- 地图模块标题栏 -->
+                <div class="map-module-header">
+                    <div class="map-module-title">
+                        <span>🌍</span>
+                        <span>地图窗口</span>
+                    </div>
+                    <div style="font-size:10px;color:var(--text-secondary);font-weight:normal;">拖动边框可调整大小</div>
+                </div>
+                
+                <!-- 地图内容区 -->
+                <div class="map-module-content">
+                    <div class="map-resize-handle" id="map-resize-handle" title="拖动调整宽度"></div>
+                    
+                    <!-- QSO 统计面板 -->
+                    <div class="qso-module-container" style="margin:10px;">
+                        <div class="qso-module-header">
+                            <span>📡 My Spots</span>
                         </div>
-                        <div class="qso-list" id="qso-calling-me-list">
-                            <div style="color:#888;">暂无数据</div>
+                        <div class="map-qso-panel" style="border:none;background:transparent;">
+                            <div class="qso-stats-row" style="padding:0;">
+                                <div class="qso-stat-item">
+                                    <div class="qso-stat-header">
+                                        <span class="qso-stat-title">📢 呼叫我电台</span>
+                                        <span class="qso-stat-count" id="qso-calling-me-count">0</span>
+                                    </div>
+                                    <div class="qso-list" id="qso-calling-me-list">
+                                        <div style="color:#888;">暂无数据</div>
+                                    </div>
+                                </div>
+                                <div class="qso-stat-item">
+                                    <div class="qso-stat-header">
+                                        <span class="qso-stat-title">📡 收到我电台</span>
+                                        <span class="qso-stat-count" id="qso-heard-me-count">0</span>
+                                    </div>
+                                    <div class="qso-list" id="qso-heard-me-list">
+                                        <div style="color:#888;">暂无数据</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="qso-stat-item">
-                        <div class="qso-stat-header">
-                            <span class="qso-stat-title">📡 收到我电台</span>
-                            <span class="qso-stat-count" id="qso-heard-me-count">0</span>
-                        </div>
-                        <div class="qso-list" id="qso-heard-me-list">
-                            <div style="color:#888;">暂无数据</div>
-                        </div>
+                    
+                    <!-- 地图容器 -->
+                    <div id="dx-map"></div>
+                    
+                    <!-- 底部控制按钮（左侧） -->
+                    <div class="map-controls-bottom" style="position:absolute;bottom:10px;left:10px;display:flex;flex-direction:column;gap:6px;">
+                        <button class="time-btn" onclick="zoomMap(1)">➕ 放大</button>
+                        <button class="time-btn" onclick="zoomMap(-1)">➖ 缩小</button>
+                        <button class="time-btn" onclick="resetMapZoom()">🌍 全球</button>
                     </div>
+                    
+                    <!-- 顶部控制按钮（右侧） -->
+                    <div class="map-controls-top" style="position:absolute;top:10px;right:10px;display:flex;gap:4px;">
+                        <button class="time-btn" id="btn-heat" onclick="toggleHeatmap()">🔥 热力</button>
+                        <button class="time-btn" id="btn-gray" onclick="toggleGrayline()">🌑 灰线</button>
+                        <button class="time-btn" id="btn-grid" onclick="toggleGridOverlay()">📐 网格</button>
+                        <button class="time-btn" onclick="closeMap()" title="关闭地图" style="background:rgba(233,69,96,0.3);border-color:#e94560;">✕</button>
+                    </div>
+                    
+                    <div class="map-height-resize-handle" id="map-height-resize-handle" title="拖动调整高度"></div>
                 </div>
             </div>
-            
-            <!-- 地图容器 -->
-            <div id="dx-map"></div>
-            
-            <!-- 底部控制按钮（左侧） -->
-            <div class="map-controls-bottom" style="position:absolute;bottom:10px;left:10px;display:flex;flex-direction:column;gap:6px;">
-                <button class="time-btn" onclick="zoomMap(1)">➕ 放大</button>
-                <button class="time-btn" onclick="zoomMap(-1)">➖ 缩小</button>
-                <button class="time-btn" onclick="resetMapZoom()">🌍 全球</button>
-            </div>
-            
-            <!-- 顶部控制按钮（右侧） -->
-            <div class="map-controls-top" style="position:absolute;top:10px;right:10px;display:flex;gap:4px;">
-                <button class="time-btn" id="btn-heat" onclick="toggleHeatmap()">🔥 热力</button>
-                <button class="time-btn" id="btn-gray" onclick="toggleGrayline()">🌑 灰线</button>
-                <button class="time-btn" id="btn-grid" onclick="toggleGridOverlay()">📐 网格</button>
-                <button class="time-btn" onclick="closeMap()" title="关闭地图" style="background:rgba(233,69,96,0.3);border-color:#e94560;">✕</button>
-            </div>
-            
-            <div class="map-height-resize-handle" id="map-height-resize-handle" title="拖动调整高度"></div>
         </div>
         
         <!-- Right Column -->

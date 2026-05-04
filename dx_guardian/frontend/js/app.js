@@ -831,11 +831,13 @@ function toggleMap() {
 function initMapResize() {
     const handle = document.getElementById('map-resize-handle');
     const column = document.getElementById('column-map');
+    const moduleContainer = document.querySelector('.map-module-container');
     if (!handle || !column) return;
     
     handle.addEventListener('mousedown', function(e) {
         mapResizing = true;
         document.body.style.cursor = 'col-resize';
+        if (moduleContainer) moduleContainer.classList.add('resizing');
         e.preventDefault();
     });
     
@@ -859,6 +861,48 @@ function initMapResize() {
         if (mapResizing) {
             mapResizing = false;
             document.body.style.cursor = '';
+            if (moduleContainer) moduleContainer.classList.remove('resizing');
+            if (map) {
+                map.invalidateSize();
+            }
+        }
+    });
+}
+
+function initMapHeightResize() {
+    const handle = document.getElementById('map-height-resize-handle');
+    const column = document.getElementById('column-map');
+    const moduleContainer = document.querySelector('.map-module-container');
+    if (!handle || !column) return;
+    
+    handle.addEventListener('mousedown', function(e) {
+        mapHeightResizing = true;
+        document.body.style.cursor = 'ns-resize';
+        if (moduleContainer) moduleContainer.classList.add('resizing');
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+        if (!mapHeightResizing) return;
+        
+        // 计算新高度（从视口顶部到鼠标位置）
+        const viewportHeight = window.innerHeight;
+        const newHeight = (e.clientY / viewportHeight) * 100;
+        
+        if (newHeight > 30 && newHeight < 90) {
+            column.style.height = newHeight + 'vh';
+            mapHeightPercent = newHeight;
+            if (map) {
+                map.invalidateSize();
+            }
+        }
+    });
+    
+    document.addEventListener('mouseup', function() {
+        if (mapHeightResizing) {
+            mapHeightResizing = false;
+            document.body.style.cursor = '';
+            if (moduleContainer) moduleContainer.classList.remove('resizing');
             if (map) {
                 map.invalidateSize();
             }
