@@ -504,9 +504,62 @@
             position: relative;
             background: var(--bg-primary);
             transition: width 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
         .column-map.collapsed { width: 0 !important; overflow: hidden; }
-        #dx-map { width: 100%; height: 100%; }
+        #dx-map { width: 100%; flex: 1; min-height: 0; }
+        
+        /* QSO Stats Panel */
+        .map-qso-panel {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px;
+            flex-shrink: 0;
+        }
+        .qso-stats-row {
+            display: flex;
+            gap: 10px;
+        }
+        .qso-stat-item {
+            flex: 1;
+            background: rgba(120,140,160,0.15);
+            border-radius: 6px;
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+        }
+        .qso-stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .qso-stat-title {
+            font-size: 11px;
+            color: var(--accent-primary);
+            font-weight: bold;
+        }
+        .qso-stat-count {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+        .qso-list {
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 10px;
+        }
+        .qso-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .qso-item:last-child { border-bottom: none; }
+        .qso-callsign { color: var(--text-primary); font-weight: bold; }
+        .qso-time { color: var(--text-secondary); }
+        .qso-band { color: var(--accent-secondary); font-size: 9px; padding: 1px 4px; border-radius: 3px; background: rgba(76,175,80,0.2); }
         
         /* Map controls - 确保始终可见 */
         .map-controls-top, .map-controls-bottom {
@@ -530,6 +583,20 @@
             transition: background 0.2s;
         }
         .map-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
+        
+        /* Map height resize handle */
+        .map-height-resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            cursor: ns-resize;
+            background: transparent;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .map-height-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
         
         /* Map toggle button - 固定在左侧列右边 */
         .map-toggle-btn {
@@ -914,9 +981,35 @@
         
         <!-- Map Column -->
         <button class="map-toggle-btn hidden" id="map-toggle-btn" onclick="toggleMap()">🌍</button>
-        <div class="column-map" id="column-map">
+        <div class="column-map" id="column-map" style="height: 80vh;">
             <div class="map-resize-handle" id="map-resize-handle" title="拖动调整宽度"></div>
+            
+            <!-- QSO 统计面板 -->
+            <div class="map-qso-panel">
+                <div class="qso-stats-row">
+                    <div class="qso-stat-item">
+                        <div class="qso-stat-header">
+                            <span class="qso-stat-title">📢 呼叫我电台</span>
+                            <span class="qso-stat-count" id="qso-calling-me-count">0</span>
+                        </div>
+                        <div class="qso-list" id="qso-calling-me-list">
+                            <div style="color:#888;">暂无数据</div>
+                        </div>
+                    </div>
+                    <div class="qso-stat-item">
+                        <div class="qso-stat-header">
+                            <span class="qso-stat-title">📡 收到我电台</span>
+                            <span class="qso-stat-count" id="qso-heard-me-count">0</span>
+                        </div>
+                        <div class="qso-list" id="qso-heard-me-list">
+                            <div style="color:#888;">暂无数据</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div id="dx-map"></div>
+            <div class="map-height-resize-handle" id="map-height-resize-handle" title="拖动调整高度"></div>
             <div class="map-controls-bottom" style="position:absolute;bottom:8px;left:8px;display:flex;flex-direction:column;gap:6px;z-index:1001;pointer-events:auto;">
                 <button class="time-btn" onclick="zoomMap(1)">➕ 放大</button>
                 <button class="time-btn" onclick="zoomMap(-1)">➖ 缩小</button>

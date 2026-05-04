@@ -345,10 +345,143 @@ document.addEventListener('click', (e) => {
     }
 });
 
-function updateUptime() {
-    const elapsed = Math.floor((Date.now() - startTime) / 60000);
-    const el = document.getElementById('uptime');
-    if (el) el.textContent = Math.floor(elapsed / 60) + 'h ' + (elapsed % 60) + 'm';
+function initMapHeightResize() {
+    const handle = document.getElementById('map-height-resize-handle');
+    const column = document.getElementById('column-map');
+    if (!handle || !column) return;
+    
+    handle.addEventListener('mousedown', function(e) {
+        mapHeightResizing = true;
+        document.body.style.cursor = 'ns-resize';
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+        if (!mapHeightResizing) return;
+        
+        // 计算新高度（从视口顶部到鼠标位置）
+        const viewportHeight = window.innerHeight;
+        const newHeight = (e.clientY / viewportHeight) * 100;
+        
+        if (newHeight > 30 && newHeight < 90) {
+            column.style.height = newHeight + 'vh';
+            mapHeightPercent = newHeight;
+            if (map) {
+                map.invalidateSize();
+            }
+        }
+    });
+    
+    document.addEventListener('mouseup', function() {
+        if (mapHeightResizing) {
+            mapHeightResizing = false;
+            document.body.style.cursor = '';
+            if (map) {
+                map.invalidateSize();
+            }
+        }
+    });
+}
+
+// ========== QSO 统计更新 ==========
+function updateQsoStats() {
+    if (!spotHistory || spotHistory.length === 0) return;
+    
+    qsoCallingMe = [];
+    qsoHeardMe = [];
+    
+    // 从最近的 spot 中筛选
+    const recentSpots = spotHistory.slice(-50); // 只看最近 50 条
+    
+    recentSpots.forEach(entry => {
+        const spot = entry.spot;
+        const comments = (spot.comments || '').toUpperCase();
+        const myCall = MY_STATION.callsign.toUpperCase();
+        
+        // 检查是否包含我的呼号
+        if (comments.includes(myCall)) {
+            // 判断是呼叫我还是听到我
+            if (comments.includes('CQ') && !comments.includes('CQ ' + myCall)) {
+                // 其他台呼叫 CQ 时提到我
+                if (!qsoCallingMe.find(q => q.call === spot.de_call)) {
+                    qsoCallingMe.push({
+                        call: spot.de_call,
+                        time: spot.time,
+                        band: spot.band,
+                        mode: spot.mode
+                    });
+                }
+            }
+            if (comments.includes('HEARD') || comments.includes('抄收') || comments.includes('R ' + myCall)) {
+                // 其他台表示听到我
+                if (!qsoHeardMe.find(q => q.call === spot.de_call)) {
+                    qsoHeardMe.push({
+                        call: spot.de_call,
+                        time: spot.time,
+                        band: spot.band,
+                        mode: spot.mode
+                    });
+                }
+            }
+        }
+    });
+    
+    // 更新显示
+    renderQsoStats();
+}
+
+function renderQsoStats() {
+    // 更新数量
+    document.getElementById('qso-calling-me-count').textContent = qsoCallingMe.length;
+    document.getElementById('qso-heard-me-count').textContent = qsoHeardMe.length;
+    
+    // 更新呼叫我列表
+    const callingList = document.getElementById('qso-calling-me-list');
+    if (qsoCallingMe.length === 0) {
+        callingList.innerHTML = '<div style="color:#888;">暂无数据</div>';
+    } else {
+        callingList.innerHTML = qsoCallingMe.slice(0, 8).map(q => `
+            <div class="qso-item">
+                <span class="qso-callsign">${q.call}</span>
+                <div style="display:flex;gap:4px;align-items:center;">
+                    <span class="qso-band">${q.band || '--'}</span>
+                    <span class="qso-time">${formatQsoTime(q.time)}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    // 更新听到我列表
+    const heardList = document.getElementById('qso-heard-me-list');
+    if (qsoHeardMe.length === 0) {
+        heardList.innerHTML = '<div style="color:#888;">暂无数据</div>';
+    } else {
+        heardList.innerHTML = qsoHeardMe.slice(0, 8).map(q => `
+            <div class="qso-item">
+                <span class="qso-callsign">${q.call}</span>
+                <div style="display:flex;gap:4px;align-items:center;">
+                    <span class="qso-band">${q.band || '--'}</span>
+                    <span class="qso-time">${formatQsoTime(q.time)}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+function formatQsoTime(isoTime) {
+    if (!isoTime) return '--';
+    try {
+        const date = new Date(isoTime);
+        const now = new Date();
+        const diff = Math.floor((now - date) / 60000); // 分钟
+        
+        if (diff < 1) return '刚刚';
+        if (diff < 60) return diff + '分前';
+        if (diff < 1440) return Math.floor(diff / 60) + '小时前';
+        return date.toLocaleTimeString('zh-CN', {hour: '2-digit', minute:'2-digit'});
+    } catch {
+        return '--';
+    }
 }
 
 async function loadSolarData() {
@@ -423,6 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(loadSolarData, 300000);
     initMap();
     initMapResize();
+    initMapHeightResize();
     initSocket();
     renderBandBar();
     loadHistory();
@@ -432,6 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => {
         const el = document.getElementById('cache-count');
         if (el) el.textContent = spotHistory.length;
+        updateQsoStats(); // 更新 QSO 统计
     }, 5000);
     setInterval(() => { if (showHeatmap) updateHeatmap(); }, 30000);
     loadPropagation();
@@ -570,6 +705,10 @@ function resetMapZoom() {
 let mapResizing = false;
 let mapWidth = 65; // 默认宽度百分比
 let mapClosed = false; // 地图是否已关闭
+let mapHeightResizing = false; // 地图高度调整中
+let mapHeightPercent = 80; // 默认高度百分比（相对于视口）
+let qsoCallingMe = []; // 呼叫我电台的列表
+let qsoHeardMe = []; // 收到我电台的列表
 
 function closeMap() {
     const column = document.getElementById('column-map');
@@ -934,6 +1073,7 @@ function initSocket() {
     socket.on('server_status', (data) => {
         updateConnectionStatus(data.cluster_connected || data.connected);
         updateSystemStatus(data);
+        updateQsoStats(); // 更新 QSO 统计
         if (data.band_counts) {
             bandCounts = {...bandCounts, ...data.band_counts};
             for (const band in data.band_counts) {
