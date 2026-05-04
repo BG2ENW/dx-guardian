@@ -260,7 +260,7 @@ class ClusterClient:
     
     def _resolve_coordinates(self, callsign, grid):
         """
-        解析坐标（简化版，只根据呼号前缀）
+        解析坐标（使用 coordinate_resolver 模块）
         
         Args:
             callsign: 呼号
@@ -269,14 +269,17 @@ class ClusterClient:
         Returns:
             tuple: (lat, lon, dxcc)
         """
-        # TODO: 实现完整的三级坐标解析
-        # 这里先用一个简单的映射，后续要整合 coordinate_resolver 模块
-        
-        # 提取前缀
-        prefix = callsign[:2]
-        
-        # 简单的默认坐标（应该是0,0表示未知）
-        return 0.0, 0.0, prefix
+        try:
+            from coordinate_resolver import resolve_coordinates
+            coords = resolve_coordinates(callsign, grid)
+            return (
+                coords.get('lat', 0.0),
+                coords.get('lon', 0.0),
+                coords.get('dxcc', 'Unknown')
+            )
+        except Exception as e:
+            print(f"[坐标解析错误] {callsign}: {e}")
+            return (0.0, 0.0, 'Unknown')
     
     def _broadcast_spot(self, spot):
         """

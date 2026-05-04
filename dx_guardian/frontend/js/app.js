@@ -172,18 +172,18 @@ function renderWatchlist() {
         const colorMap = {callsign: '#4CAF50', dxcc: '#2196F3', prefix: '#FF9800', band: '#e94560', mode: '#9C27B0'};
         const color = colorMap[item.target_type] || '#888';
         const enabledStyle = item.enabled ? '' : 'opacity:0.4;';
-        const bandTag = item.band_preference ? `<span style="background:#0f3460;padding:1px 5px;border-radius:3px;font-size:10px;margin-left:4px;">${item.band_preference}</span>` : '';
-        const modeTag = item.mode_preference ? `<span style="background:#0f3460;padding:1px 5px;border-radius:3px;font-size:10px;margin-left:4px;">${item.mode_preference}</span>` : '';
+        const bandTag = item.band_preference ? `<span class="watchlist-tag">${item.band_preference}</span>` : '';
+        const modeTag = item.mode_preference ? `<span class="watchlist-tag">${item.mode_preference}</span>` : '';
 
-        return `<div class="spot" style="border-left-color:${color};${enabledStyle}">
+        return `<div class="watchlist-item" style="${enabledStyle}">
             <div style="display:flex;justify-content:space-between;align-items:center;">
                 <div>
-                    <span style="font-weight:bold;color:#fff;font-size:13px;">${item.target_value}</span>
-                    <span style="font-size:10px;color:${color};margin-left:4px;">${typeLabel}</span>${bandTag}${modeTag}
+                    <span class="watchlist-type" style="color:${color};margin-right:4px;">${typeLabel}</span>
+                    <span class="watchlist-call">${item.target_value}</span>${bandTag}${modeTag}
                 </div>
                 <div style="display:flex;gap:4px;">
-                    <button onclick="toggleWatchlistItem('${item.id}', ${!item.enabled})" style="background:rgba(255,255,255,0.1);border:none;color:#aaa;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:10px;">${item.enabled ? '🟢' : '⚪'}</button>
-                    <button onclick="removeWatchlistItem('${item.id}')" style="background:rgba(244,67,54,0.2);border:none;color:#f44336;padding:2px 6px;border-radius:3px;cursor:pointer;font-size:10px;">✕</button>
+                    <button class="wl-btn wl-status" onclick="toggleWatchlistItem('${item.id}', ${!item.enabled})">${item.enabled ? '🟢' : '⚪'}</button>
+                    <button class="wl-btn wl-delete" onclick="removeWatchlistItem('${item.id}')">✕</button>
                 </div>
             </div>
         </div>`;
@@ -963,7 +963,7 @@ function createSpotMarker(spotData) {
         const timeStr = spotData.time ? '<br/>🕐 ' + spotData.time : '';
         const spotterInfo = spotData.spotter ? '<br/>📢 报告：' + spotData.spotter : '';
         const commentInfo = spotData.comment ? '<br/>💬 ' + spotData.comment : '';
-        const precisionLabel = (spotData.precision === 'grid' || spotData.precision === 'grid_db') ? ' (精确)' : (spotData.precision === 'cty' ? ' (CTY)' : (spotData.precision === 'dxcc' ? ' (国家)' : ''));
+        const precisionLabel = (spotData.precision === 'grid' || spotData.precision === 'grid_db') ? ' (精确)' : (spotData.precision === 'china_province' ? ' (省份)' : (spotData.precision === 'cty' ? ' (CTY)' : (spotData.precision === 'dxcc' ? ' (国家)' : '')));
 
         marker.bindTooltip(
             '<div style="min-width:180px;">' +

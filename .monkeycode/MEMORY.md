@@ -76,3 +76,19 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
     - Cluster 连接线程
     - PSKReporter 数据轮询
     - 评分相关 API（score/spot, score/missing, score/top）
+
+[PSKReporter Grid 字段兼容性]
+- Date: 2026-05-04
+- Context: Agent 在执行 Grid 问题修复时发现
+- Category: 代码模式
+- Instructions:
+  - PSKReporter 的 `senderLocator` 可能出现 4/6/8 位 Maidenhead（如 `JN18dr12`），入库前需统一 `trim + uppercase`。
+  - Grid 校验建议使用正则 `^[A-R]{2}[0-9]{2}([A-X]{2})?([0-9]{2})?$`，无效值应置空避免污染坐标解析和去重键。
+
+[PSK Grid 持久缓存机制]
+- Date: 2026-05-04
+- Context: Agent 在执行 CTY 精度优化时发现
+- Category: 代码模式
+- Instructions:
+  - 呼号到 Grid 的快速索引需要落盘到 `dx_guardian/backend/data/psk_grid_cache.json`，避免服务重启后丢失并再次回退 CTY。
+  - 启动时先加载缓存，运行中仅在 Grid 变更时批量保存，可降低 I/O 并保持地图定位连续性。

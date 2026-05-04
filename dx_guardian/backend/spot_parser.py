@@ -85,8 +85,15 @@ class SpotDeduplicator:
         self.max_size = max_size
         self.window = window_seconds
     
-    def is_duplicate(self, spot):
-        key = f"{spot.get('callsign', '')}:{spot.get('freq', '')}"
+    def is_duplicate(self, spot, source=None):
+        # PSK Reporter 使用不同的 key 前缀，避免被 Cluster Spot 去重
+        # 因为 PSK Reporter 的 Grid 是实际接收到的，比 Cluster 更可靠
+        # PSK Reporter 的 key 包含 Grid，因为同一呼号可能在不同 Grid 被接收
+        if source == 'pskreporter':
+            grid = spot.get('grid', '')
+            key = f"psk:{spot.get('callsign', '')}:{spot.get('freq', '')}:{grid}"
+        else:
+            key = f"{spot.get('callsign', '')}:{spot.get('freq', '')}"
         now = datetime.now(timezone.utc).timestamp()
         
         for k in [k for k, ts in self.seen.items() if ts < now - self.window]:

@@ -47,15 +47,86 @@ from opportunities_routes import register_routes as register_opportunities_route
 # =========== 太阳数据模块 ===========
 SOLAR_DATA = {}
 SOLAR_LAST_UPDATE = 0
-SOLAR_CACHE_TIMEOUT = 300  # 5分钟
+SOLAR_CACHE_TIMEOUT = 300  # 5 分钟
 
 def update_solar_data():
-    """获取太阳数据（从 hamqsl.com 和 NOAA）"""
+    """从 hamqsl.com 获取太阳数据"""
     global SOLAR_DATA, SOLAR_LAST_UPDATE
+    from datetime import datetime, timezone
     
-    now = time.time()
-    if SOLAR_LAST_UPDATE > 0 and (now - SOLAR_LAST_UPDATE) < SOLAR_CACHE_TIMEOUT:
+    # 检查缓存是否有效
+    now = datetime.now().timestamp()
+    if now - SOLAR_LAST_UPDATE < SOLAR_CACHE_TIMEOUT and SOLAR_DATA:
         return SOLAR_DATA
+    
+    # 初始化默认值
+    if not SOLAR_DATA:
+        SOLAR_DATA = {
+            'sfi': 100,
+            'sn': 0,
+            'k': 2,
+            'k_index': 2,
+            'a_index': 5,
+            'updated_at': None
+        }
+    
+    try:
+        import requests
+        import xml.etree.ElementTree as ET
+        
+        URL_HAMQSL = 'https://www.hamqsl.com/solarxml.php'
+        r = requests.get(URL_HAMQSL, timeout=10)
+        
+        if r.status_code == 200:
+            root = ET.fromstring(r.content)
+            solardata = root.find('.//solardata')
+            
+            if solardata is not None:
+                # 获取并解析数据节点
+                # hamqsl.com XML 结构：<solarflux>143</solarflux> <sunspots>138</sunspots>
+                sfi_node = solardata.find('solarflux')
+                sn_node = solardata.find('sunspots')
+                a_node = solardata.find('aindex')
+                k_node = solardata.find('kindex')
+                
+                # 解析 SFI (Solar Flux Index)
+                if sfi_node is not None and sfi_node.text:
+                    try:
+                        SOLAR_DATA['sfi'] = float(sfi_node.text.strip())
+                    except ValueError:
+                        pass
+                
+                # 解析 SSN (Sunspot Number / sunspots)
+                if sn_node is not None and sn_node.text:
+                    try:
+                        SOLAR_DATA['sn'] = float(sn_node.text.strip())
+                    except ValueError:
+                        pass
+                
+                # 解析 A-index
+                if a_node is not None and a_node.text:
+                    try:
+                        SOLAR_DATA['a_index'] = float(a_node.text.strip())
+                    except ValueError:
+                        pass
+                
+                # 解析 K-index
+                if k_node is not None and k_node.text and k_node.text.strip() != 'No Report':
+                    try:
+                        SOLAR_DATA['k'] = float(k_node.text.strip())
+                        SOLAR_DATA['k_index'] = SOLAR_DATA['k']
+                    except ValueError:
+                        pass
+                
+                SOLAR_DATA['updated_at'] = datetime.now(timezone.utc).isoformat()
+                SOLAR_LAST_UPDATE = now
+                
+                log(f'[太阳数据] SFI={SOLAR_DATA["sfi"]} SSN={SOLAR_DATA["sn"]} K={SOLAR_DATA["k"]} A={SOLAR_DATA["a_index"]}')
+                
+    except Exception as e:
+        log(f'[太阳数据获取失败] {e}')
+    
+    return SOLAR_DATA
     
     # 默认值
     SOLAR_DATA = {
@@ -171,6 +242,9 @@ cluster_should_run = False  # Cluster是否应该运行（备用模式）
 # 后端 Spot 缓存（持续积累，不受前端连接影响）
 SPOT_HISTORY_MAX = 10000  # 改为 1 万条缓存
 spot_history = []  # 所有处理过的 Spot（含时间戳）
+latest_psk_grid_by_callsign = {}  # 呼号 -> 最近一次 PSK Reporter Grid
+PSK_GRID_CACHE_FILE = BACKEND_DIR / 'data' / 'psk_grid_cache.json'
+PSK_GRID_CACHE_MAX = 50000
 
 # PSKReporter 配置
 PSKREPORTER_URL = 'https://retrieve.pskreporter.info/query'
@@ -197,6 +271,69 @@ def _external_api_error(service: str, err: Exception):
 
 def _external_failure_payload(message: str = '外部服务暂时不可用') -> dict:
     return {'ok': False, 'error': message}
+
+
+def load_psk_grid_cache():
+    """加载呼号->Grid 持久缓存，减少重启后 CTY 回退。"""
+    global latest_psk_grid_by_callsign
+    try:
+        if not PSK_GRID_CACHE_FILE.exists():
+            return
+
+        with open(PSK_GRID_CACHE_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        if not isinstance(data, dict):
+            return
+
+        items = data.items()
+        if len(data) > PSK_GRID_CACHE_MAX:
+            items = list(items)[-PSK_GRID_CACHE_MAX:]
+
+        restored = 0
+        for callsign, row in items:
+            if not isinstance(callsign, str):
+                continue
+
+            grid = ''
+            if isinstance(row, dict):
+                grid = str(row.get('grid', '')).strip().upper()
+            elif isinstance(row, str):
+                grid = row.strip().upper()
+
+            if re_module.match(r'^[A-R]{2}[0-9]{2}([A-X]{2})?([0-9]{2})?$', grid):
+                latest_psk_grid_by_callsign[callsign.upper()] = grid
+                restored += 1
+
+        log(f'[PSK Grid 缓存] 已加载 {restored} 条')
+    except Exception as e:
+        log(f'[PSK Grid 缓存] 加载失败: {e}')
+
+
+def save_psk_grid_cache():
+    """保存呼号->Grid 持久缓存。"""
+    try:
+        PSK_GRID_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with lock:
+            items = list(latest_psk_grid_by_callsign.items())
+
+        # 只保留最近写入的若干条，避免文件无限膨胀
+        if len(items) > PSK_GRID_CACHE_MAX:
+            items = items[-PSK_GRID_CACHE_MAX:]
+
+        payload = {}
+        now_ts = int(time.time())
+        for callsign, grid in items:
+            payload[callsign] = {
+                'grid': grid,
+                'updated_at': now_ts,
+                'source': 'pskreporter'
+            }
+
+        with open(PSK_GRID_CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        log(f'[PSK Grid 缓存] 保存失败: {e}')
 
 
 register_wavelog_routes(
@@ -545,6 +682,11 @@ def find_psk_grid_for_callsign(callsign):
         str or None: Grid 方格，如果没有找到则返回 None
     """
     callsign_upper = callsign.upper()
+
+    # 先查内存缓存（O(1)），再回退历史扫描
+    cached = latest_psk_grid_by_callsign.get(callsign_upper)
+    if cached:
+        return cached
     
     # 从最近的 Spot 开始查找（倒序）
     for spot in reversed(spot_history):
@@ -562,6 +704,37 @@ def find_psk_grid_for_callsign(callsign):
             return grid.upper()
     
     return None
+
+
+def backfill_recent_cluster_spots_with_grid(callsign, grid, scan_limit=2000):
+    """当拿到 PSK Grid 后，回填近期同呼号且缺 Grid 的 Cluster Spot。"""
+    if not callsign or not grid:
+        return 0
+
+    callsign_upper = callsign.upper()
+    updated = 0
+
+    with lock:
+        start = max(0, len(spot_history) - scan_limit)
+        for idx in range(len(spot_history) - 1, start - 1, -1):
+            s = spot_history[idx]
+            if s.get('source') == 'pskreporter':
+                continue
+            if s.get('callsign', '').upper() != callsign_upper:
+                continue
+            if s.get('grid'):
+                continue
+
+            coords = resolve_coordinates(callsign_upper, grid)
+            s['grid'] = grid
+            s['lat'] = coords.get('lat', s.get('lat', 0))
+            s['lon'] = coords.get('lon', s.get('lon', 0))
+            s['precision'] = coords.get('precision', s.get('precision', 'cty'))
+            if coords.get('dxcc'):
+                s['dxcc'] = coords.get('dxcc')
+            updated += 1
+
+    return updated
 
 
 def add_to_history(spot):
@@ -732,6 +905,7 @@ def pskreporter_thread():
     - 建议加 appcontact 参数方便管理员联系
     - flowStartSeconds不能超过 -86400(24 小时)
     """
+    global total_spots, last_psk_success
     import xml.etree.ElementTree as ET
     try:
         import cloudscraper
@@ -745,8 +919,18 @@ def pskreporter_thread():
     time.sleep(15)  # 等待启动完成
     log('[PSKReporter] 全球数据源启动（5 分钟间隔，遵守官方限制）')
 
+    def _normalize_psk_grid(raw_grid):
+        """标准化 PSK Reporter 的 Grid（支持 4/6/8 位 Maidenhead）。"""
+        if not raw_grid:
+            return ''
+        grid = str(raw_grid).strip().upper()
+        if not re_module.match(r'^[A-R]{2}[0-9]{2}([A-X]{2})?([0-9]{2})?$', grid):
+            return ''
+        return grid
+
     while True:
         try:
+            cache_dirty = False
             # 全球查询：不带 senderCallsign，获取所有接收报告
             # flowStartSeconds=-300: 最近 5 分钟的数据
             # noactive=1: 不返回活跃监听台列表（减少数据量）
@@ -783,9 +967,11 @@ def pskreporter_thread():
             
             count = 0
             last_seq = root.get('lastSeqNo', '')
-            log(f'[PSKReporter] 收到 {len(root.findall(".//receptionReport"))} 条接收报告')
+            reports = root.findall('.//receptionReport')
+            log(f'[PSKReporter] 收到 {len(reports)} 条接收报告')
+            log(f'[PSKReporter] 样本：senderCallsign={reports[0].get("senderCallsign") if reports else "N/A"}, senderLocator={reports[0].get("senderLocator") if reports else "N/A"}')
 
-            for recv in root.findall('.//receptionReport'):
+            for recv in reports:
                 try:
                     # PSKReporter的receptionReport中：
                     # - 发送台（被接收到的台）= senderCallsign
@@ -806,14 +992,14 @@ def pskreporter_thread():
 
                     mode = recv.get('mode', 'FT8')
                     # 发送台的Grid locator
-                    grid = recv.get('senderLocator', '') or recv.get('locator', '')
+                    grid = _normalize_psk_grid(recv.get('senderLocator', '') or recv.get('locator', ''))
                     snr = recv.get('sNR', '')
                     
                     # 时间信息
                     flow_start = recv.get('flowStartSeconds', '')
                     
                     # 接收台信息
-                    receiver_grid = recv.get('receiverLocator', '')
+                    receiver_grid = _normalize_psk_grid(recv.get('receiverLocator', ''))
                     
                     # 设备和天线信息
                     decoder_software = recv.get('decoderSoftware', '')
@@ -854,8 +1040,9 @@ def pskreporter_thread():
                         'rig_info': rig_info,
                     }
 
-                    # 去重
-                    if dedup.is_duplicate(spot):
+                    # 去重（PSK Reporter 使用不同的 key，避免被 Cluster Spot 去重）
+                    if dedup.is_duplicate(spot, source='pskreporter'):
+                        log(f"[PSKReporter 去重] {spot.get('callsign')} {spot.get('freq')}")
                         continue
 
                     # 坐标解析
@@ -866,7 +1053,16 @@ def pskreporter_thread():
                     spot['dxcc'] = coords.get('dxcc', '')
 
                     if spot['lat'] == 0 and spot['lon'] == 0:
+                        log(f"[PSKReporter 坐标失败] {spot.get('callsign')} grid={grid}")
                         continue
+
+                    # 记录该呼号最近一次 PSK Grid，供 Cluster 快速复用
+                    if grid:
+                        callsign_upper = callsign.upper()
+                        old_grid = latest_psk_grid_by_callsign.get(callsign_upper)
+                        latest_psk_grid_by_callsign[callsign_upper] = grid
+                        if old_grid != grid:
+                            cache_dirty = True
 
                     # 更新统计
                     with lock:
@@ -875,6 +1071,14 @@ def pskreporter_thread():
                             band_counts[band] += 1
 
                     add_to_history(spot)
+                    count += 1
+                    log(f'[PSKReporter Spot] {callsign} {freq_mhz} {mode} grid={grid} lat={spot["lat"]:.2f} lon={spot["lon"]:.2f}')
+
+                    # 回填历史中的 Cluster FT8/FT4 记录，减少地图显示 CTY 的情况
+                    if grid:
+                        backfilled = backfill_recent_cluster_spots_with_grid(callsign, grid)
+                        if backfilled > 0:
+                            log(f'[PSK Grid 回填] {callsign} grid={grid} 回填 {backfilled} 条历史 Spot')
 
                     # 计算机会评分
                     try:
@@ -918,14 +1122,15 @@ def pskreporter_thread():
                     except:
                         pass
 
-                    count += 1
-
                 except Exception as e:
+                    log(f"[PSKReporter 解析异常] {type(e).__name__}: {e}")
                     continue
 
             if count > 0:
                 last_psk_success = time.time()
                 log(f'[PSKReporter] ✅ {count} 条全球接收报告')
+            if cache_dirty:
+                save_psk_grid_cache()
 
         except urllib.error.HTTPError as e:
             if e.code == 429:
@@ -1132,6 +1337,9 @@ if __name__ == '__main__':
     log(f'Frontend: {FRONTEND_DIR}')
     log(f'Cluster: {[s["host"] for s in CLUSTER_SERVERS]}')
     log(f'PSKReporter: {PSKREPORTER_URL}')
+
+    # 启动时加载持久化 PSK Grid 缓存，降低重启后 CTY 回退
+    load_psk_grid_cache()
 
     # Cluster 连接线程
     t = threading.Thread(target=cluster_thread, daemon=True)
