@@ -345,84 +345,51 @@ document.addEventListener('click', (e) => {
     }
 });
 
-function initMapHeightResize() {
-    const handle = document.getElementById('map-height-resize-handle');
-    const column = document.getElementById('column-map');
-    if (!handle || !column) return;
-    
-    handle.addEventListener('mousedown', function(e) {
-        mapHeightResizing = true;
-        document.body.style.cursor = 'ns-resize';
-        e.preventDefault();
-    });
-    
-    document.addEventListener('mousemove', function(e) {
-        if (!mapHeightResizing) return;
-        
-        // 计算新高度（从视口顶部到鼠标位置）
-        const viewportHeight = window.innerHeight;
-        const newHeight = (e.clientY / viewportHeight) * 100;
-        
-        if (newHeight > 30 && newHeight < 90) {
-            column.style.height = newHeight + 'vh';
-            mapHeightPercent = newHeight;
-            if (map) {
-                map.invalidateSize();
-            }
-        }
-    });
-    
-    document.addEventListener('mouseup', function() {
-        if (mapHeightResizing) {
-            mapHeightResizing = false;
-            document.body.style.cursor = '';
-            if (map) {
-                map.invalidateSize();
-            }
-        }
-    });
-}
-
 // ========== QSO 统计更新 ==========
 function updateQsoStats() {
     if (!spotHistory || spotHistory.length === 0) return;
     
-    qsoCallingMe = [];
-    qsoHeardMe = [];
+    qsoReceived = []; // 我收到的电台（由我上报的 spot）
+    qsoHeardMe = []; // 收到我电台的列表（其他台上报听到我）
     
     // 从最近的 spot 中筛选
-    const recentSpots = spotHistory.slice(-100); // 看最近 100 条
+    const recentSpots = spotHistory.slice(-200); // 看最近 200 条
+    const myCall = MY_STATION.callsign.toUpperCase();
     
     recentSpots.forEach(entry => {
         const spot = entry.spot;
         const comments = (spot.comments || '').toUpperCase();
-        const myCall = MY_STATION.callsign.toUpperCase();
+        const deCall = (spot.de_call || '').toUpperCase();
         
-        // 检查是否包含我的呼号
-        if (comments.includes(myCall)) {
-            // 判断是呼叫我还是听到我
-            if (comments.includes('CQ') && !comments.includes('CQ ' + myCall)) {
-                // 其他台呼叫 CQ 时提到我
-                if (!qsoCallingMe.find(q => q.call === spot.de_call)) {
-                    qsoCallingMe.push({
-                        call: spot.de_call,
-                        country: spot.country || guessCountry(spot.de_call),
+        // 判断是否是我上报的 spot（de_call 是我的呼号）
+        if (deCall === myCall) {
+            // 这是我接收并上报的 DX 电台
+            if (!qsoReceived.find(q => q.call === spot.dx_call || q.call === spot.de_call)) {
+                // 提取 DX 电台呼号（spot 对象里的 dx_call 或从 comments 提取）
+                let dxCall = spot.dx_call || extractDxCallsign(comments, myCall);
+                if (dxCall && dxCall !== myCall) {
+                    qsoReceived.push({
+                        call: dxCall,
+                        country: spot.country || guessCountry(dxCall),
                         freq: spot.freq || spot.de_freq || '',
                         mode: spot.mode || '',
                         signal: spot.signal || extractSignal(comments),
                         time: spot.time,
-                        band: spot.band || freqToBand(spot.de_freq)
+                        band: spot.band || freqToBand(spot.de_freq),
+                        comments: spot.comments || ''
                     });
                 }
             }
-            if (comments.includes('HEARD') || comments.includes('抄收') || comments.includes('R ' + myCall) || comments.includes('RST')) {
+        } else {
+            // 其他台上报的 spot，检查是否听到我
+            if (comments.includes(myCall) && (comments.includes('HEARD') || comments.includes('抄收') || comments.includes('RST') || comments.includes('R ' + myCall))) {
                 // 其他台表示听到我
-                if (!qsoHeardMe.find(q => q.call === spot.de_call)) {
+                if (!qsoHeardMe.find(q => q.call === deCall)) {
                     // 从 comments 提取信号报告
                     const rst = extractRST(comments);
                     qsoHeardMe.push({
-                        call: spot.de_call,
-                        country: spot.country || guessCountry(spot.de_call),
+                        call: deCall,
+                        country: spot.country || guessCountry(deCall),
                         freq: spot.freq || spot.de_freq || '',
                         mode: spot.mode || '',
                         signal: rst || extractSignal(comments),
@@ -435,7 +402,7 @@ function updateQsoStats() {
     });
     
     // 按时间排序，最新的在前
-    qsoCallingMe.sort((a, b) => new Date(b.time) - new Date(a.time));
+    qsoReceived.sort((a, b) => new Date(b.time) - new Date(a.time));
     qsoHeardMe.sort((a, b) => new Date(b.time) - new Date(a.time));
     
     // 更新显示
@@ -444,15 +411,15 @@ function updateQsoStats() {
 
 function renderQsoStats() {
     // 更新数量
-    document.getElementById('qso-calling-me-count').textContent = qsoCallingMe.length;
+    document.getElementById('qso-calling-me-count').textContent = qsoReceived.length;
     document.getElementById('qso-heard-me-count').textContent = qsoHeardMe.length;
     
-    // 更新呼叫我列表 - 显示 10 个最新的
-    const callingList = document.getElementById('qso-calling-me-list');
-    if (qsoCallingMe.length === 0) {
-        callingList.innerHTML = '<div style="color:#888;">暂无数据</div>';
+    // 更新我收到的电台列表 - 固定显示 10 个最新的
+    const receivedList = document.getElementById('qso-calling-me-list');
+    if (qsoReceived.length === 0) {
+        receivedList.innerHTML = '<div style="color:#888;">暂无数据</div>';
     } else {
-        callingList.innerHTML = qsoCallingMe.slice(0, 10).map(q => `
+        receivedList.innerHTML = qsoReceived.slice(0, 10).map(q => `
             <div class="qso-item">
                 <div class="qso-info">
                     <span class="qso-callsign">${q.call}</span>
@@ -461,14 +428,14 @@ function renderQsoStats() {
                 <div class="qso-meta">
                     <span class="qso-band">${q.band || '--'}</span>
                     <span class="qso-mode">${q.mode || '--'}</span>
-                    <span class="qso-signal">${q.signal ? q.signal + 'dB' : ''}</span>
+                    <span class="qso-signal">${q.signal ? ((q.signal>0)?'+':'') + q.signal + 'dB' : ''}</span>
                 </div>
                 <span class="qso-time">${formatQsoTime(q.time)}</span>
             </div>
         `).join('');
     }
     
-    // 更新听到我列表 - 显示 10 个最新的
+    // 更新收到我电台列表 - 固定显示 10 个最新的
     const heardList = document.getElementById('qso-heard-me-list');
     if (qsoHeardMe.length === 0) {
         heardList.innerHTML = '<div style="color:#888;">暂无数据</div>';
@@ -488,6 +455,21 @@ function renderQsoStats() {
             </div>
         `).join('');
     }
+}
+
+function extractDxCallsign(comments, myCall) {
+    // 从 comments 中提取 DX 电台呼号
+    // 格式通常是 "CQ JA1ABC" 或 "JA1ABC FT8" 等
+    const words = comments.split(/\s+/);
+    for (let word of words) {
+        // 跳过常见关键词
+        if (['CQ', 'TEST', 'CONTEST', 'PSE', 'K', 'OVER', 'QRZ', 'DE'].includes(word.toUpperCase())) continue;
+        // 检查是否像呼号
+        if (/^[A-Z0-9]{3,}\/?[A-Z0-9]*$/.test(word) && word.toUpperCase() !== myCall) {
+            return word;
+        }
+    }
+    return null;
 }
 
 function guessCountry(callsign) {
@@ -631,6 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initMap();
     initMapResize();
     initMapHeightResize();
+    initQsoHeightResize();
     initSocket();
     renderBandBar();
     loadHistory();
@@ -781,8 +764,10 @@ let mapWidth = 65; // 默认宽度百分比
 let mapClosed = false; // 地图是否已关闭
 let mapHeightResizing = false; // 地图高度调整中
 let mapHeightPercent = 80; // 默认高度百分比（相对于视口）
-let qsoCallingMe = []; // 呼叫我电台的列表
-let qsoHeardMe = []; // 收到我电台的列表
+let qsoReceived = []; // 我收到的电台列表（由我上报的 spot）
+let qsoHeardMe = []; // 收到我电台的列表（其他台上报听到我）
+let qsoHeightResizing = false; // QSO 模块高度调整中
+let qsoHeightPercent = 25; // QSO 模块默认高度百分比
 
 function closeMap() {
     const column = document.getElementById('column-map');
@@ -906,6 +891,40 @@ function initMapHeightResize() {
             if (map) {
                 map.invalidateSize();
             }
+        }
+    });
+}
+
+function initQsoHeightResize() {
+    const handle = document.getElementById('qso-height-resize-handle');
+    const qsoModule = document.getElementById('qso-module-container');
+    if (!handle || !qsoModule) return;
+    
+    handle.addEventListener('mousedown', function(e) {
+        qsoHeightResizing = true;
+        document.body.style.cursor = 'ns-resize';
+        qsoModule.classList.add('resizing');
+        e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+        if (!qsoHeightResizing) return;
+        
+        // 计算新高度（从 QSO 模块顶部到鼠标位置）
+        const qsoRect = qsoModule.getBoundingClientRect();
+        const newHeight = e.clientY - qsoRect.top;
+        
+        if (newHeight > 150 && newHeight < 500) {
+            qsoModule.style.height = newHeight + 'px';
+            qsoHeightPercent = (newHeight / window.innerHeight) * 100;
+        }
+    });
+    
+    document.addEventListener('mouseup', function() {
+        if (qsoHeightResizing) {
+            qsoHeightResizing = false;
+            document.body.style.cursor = '';
+            qsoModule.classList.remove('resizing');
         }
     });
 }
