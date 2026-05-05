@@ -267,7 +267,7 @@ def init_cleanup_scheduler():
     def daily_cleanup():
         """每日凌晨 2 点清理 7 天前的数据"""
         db = get_database()
-        deleted_time, deleted_count = db.cleanup_old_data(days=7)
+        deleted_time, deleted_count = db.cleanup(max_age_hours=168)
         total_deleted = deleted_time + deleted_count
         if total_deleted > 0:
             log(f"[Cleanup] 清理完成：删除 {total_deleted} 条记录 (时间:{deleted_time}, 数量:{deleted_count})")
@@ -278,7 +278,7 @@ def init_cleanup_scheduler():
     log("[Cleanup] 启动时执行首次清理...")
     try:
         db = get_database()
-        deleted_time, deleted_count = db.cleanup_old_data(days=7, max_records=100000)
+        deleted_time, deleted_count = db.cleanup(max_age_hours=168, max_records=100000)
         total_deleted = deleted_time + deleted_count
         if total_deleted > 0:
             log(f"[Cleanup] 启动清理完成：删除 {total_deleted} 条记录")
