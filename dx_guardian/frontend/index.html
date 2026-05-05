@@ -543,6 +543,43 @@
             font-weight: bold;
             color: var(--accent-primary);
             flex-shrink: 0;
+            gap: 12px;
+        }
+        
+        .qso-header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .qso-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: normal;
+        }
+        
+        .qso-filter-select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(120,140,160,0.3);
+            border-radius: 3px;
+            color: var(--text-primary);
+            font-size: 11px;
+            padding: 3px 6px;
+            cursor: pointer;
+            outline: none;
+        }
+        
+        .qso-filter-select:hover {
+            border-color: var(--accent-primary);
+        }
+        
+        .qso-filter-select:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 5px rgba(233, 69, 96, 0.3);
         }
         .qso-module-content {
             flex: 1;
@@ -687,29 +724,26 @@
             color: var(--text-primary);
         }
         .qso-list {
-            max-height: 120px;
+            flex: 1;
             overflow-y: auto;
             font-size: 10px;
+            margin-top: 6px;
         }
         .qso-item {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .qso-item:last-child { border-bottom: none; }
+        .qso-row-main {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 4px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            gap: 6px;
-        }
-        .qso-item:last-child { border-bottom: none; }
-        .qso-info {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex: 1;
-            min-width: 0;
+            margin-bottom: 3px;
         }
         .qso-callsign { 
             color: var(--text-primary); 
             font-weight: bold;
+            font-size: 11px;
             white-space: nowrap;
         }
         .qso-country {
@@ -717,16 +751,31 @@
             font-size: 9px;
             white-space: nowrap;
         }
-        .qso-meta {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-            flex-shrink: 0;
+        .qso-spotter {
+            color: #FF9800;
+            font-size: 9px;
         }
-        .qso-band { color: var(--accent-secondary); font-size: 9px; padding: 1px 4px; border-radius: 3px; background: rgba(76,175,80,0.2); }
+        .qso-row-meta {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .qso-freq { color: var(--accent-secondary); font-size: 9px; font-family: monospace; }
         .qso-mode { color: #2196F3; font-size: 9px; padding: 1px 4px; border-radius: 3px; background: rgba(33,150,243,0.2); }
-        .qso-signal { color: #FF5733; font-size: 9px; font-weight: bold; }
-        .qso-time { color: var(--text-secondary); font-size: 9px; min-width: 32px; text-align: right; }
+        .qso-grid { color: #9C27B0; font-size: 9px; font-family: monospace; }
+        .qso-time { color: var(--text-secondary); font-size: 9px; margin-left: auto; }
+        .qso-age { color: #FF9800; font-size: 9px; font-weight: bold; padding: 1px 4px; border-radius: 3px; background: rgba(255,152,0,0.15); margin-left: 4px; }
+        .qso-comments {
+            color: var(--text-secondary);
+            font-size: 9px;
+            margin-top: 2px;
+            padding-top: 2px;
+            border-top: 1px dashed rgba(255,255,255,0.1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         
         /* Map resize handle */
         .map-resize-handle {
@@ -1185,7 +1234,20 @@
             <div class="qso-module-wrapper">
                 <div class="qso-module-container" id="qso-module-container">
                     <div class="qso-module-header">
-                        <span>📡 My Spots</span>
+                        <div class="qso-header-left">
+                            <span>📡 My Spots</span>
+                            <div class="qso-filter-group">
+                                <label for="age-filter-select">时间范围:</label>
+                                <select id="age-filter-select" class="qso-filter-select" onchange="applyAgeFilter()">
+                                    <option value="">全部</option>
+                                    <option value="1">最近 1 小时</option>
+                                    <option value="6" selected>最近 6 小时</option>
+                                    <option value="12">最近 12 小时</option>
+                                    <option value="24">最近 24 小时</option>
+                                    <option value="168">最近 7 天</option>
+                                </select>
+                            </div>
+                        </div>
                         <div style="font-size:10px;color:var(--text-secondary);font-weight:normal;">拖动下边框可调整高度</div>
                     </div>
                     <div class="qso-module-content" id="qso-module-content">
@@ -1344,7 +1406,7 @@
     <script src="js/leaflet.js?v=1.5"></script>
     <script src="js/leaflet-heat.js?v=1.5"></script>
     <script src="js/socket.io.min.js?v=1.5"></script>
-    <script src="js/app.js?v=1.7"></script>
+    <script src="js/app.js?v=1.24"></script>
     <script src="js/alerts.js?v=1.5"></script>
     <script src="js/score_display.js?v=1.5"></script>
     <script src="js/push.js?v=1.5"></script>

@@ -268,13 +268,10 @@ async function toggleWatchlistItem(id, enabled) {
 // === 时间筛选 ===
 let timeFilter = 30; // 默认 30 分钟
 const TIME_OPTIONS = [
-    {label: '15 分钟', value: 15},
-    {label: '30 分钟', value: 30},
-    {label: '1 小时', value: 60},
-    {label: '2 小时', value: 120},
-    {label: '4 小时', value: 240},
-    {label: '全部', value: 0}
+    5, 10, 15, 30, 60, 120, 180
 ];
+
+let ageFilterHours = 6; // 默认 6 小时
 
 // === 模式筛选 ===
 let modeFilter = 'FT8'; // 默认只显示 FT8
@@ -346,60 +343,181 @@ document.addEventListener('click', (e) => {
 });
 
 // ========== QSO 统计更新 ==========
-function updateQsoStats() {
+async function updateQsoStats() {
+    try {
+        const url = `/api/myspots?call=${MY_STATION.callsign}${ageFilterHours ? `&age_hours=${ageFilterHours}` : ''}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        
+        const iSpotted = data.i_spotted || [];
+        const theySpottedMe = data.they_spotted_me || [];
+        
+        console.log(`[MySpots] 我上报=${iSpotted.length}, 上报我=${theySpottedMe.length}, 总缓存=${data.total_history}, 筛选=${ageFilterHours}h`);
+        
+        const qsoReceived = iSpotted.map(s => ({
+            call: s.callsign,
+            country: s.dxcc || s.country || guessCountry(s.callsign),
+            freq: s.freq || '',
+            mode: s.mode || '',
+            grid: s.grid || '',
+            signal: extractSignal(s.comment || ''),
+            time: s.time || s.timestamp,
+            band: s.band || freqToBand(s.freq),
+            comments: s.comment || '',
+            location: s.location || ''
+        }));
+        
+        const qsoHeardMe = theySpottedMe.map(s => ({
+            call: s.reporter,
+            country: s.dxcc || s.country || guessCountry(s.reporter),
+            freq: s.freq || '',
+            mode: s.mode || '',
+            grid: s.grid || '',
+            signal: extractRST(s.comment || '') || extractSignal(s.comment || ''),
+            time: s.time || s.timestamp,
+            band: s.band || freqToBand(s.freq),
+            comments: s.comment || ''
+        }));
+        
+        // 按时间排序，最新的在前
+        qsoReceived.sort((a, b) => new Date(b.time) - new Date(a.time));
+        qsoHeardMe.sort((a, b) => new Date(b.time) - new Date(a.time));
+        
+        // 更新显示
+        renderQsoStatsLocal(qsoReceived, qsoHeardMe);
+    } catch (e) {
+        console.error('[MySpots] 加载失败:', e);
+    }
+}
+
+// 渲染 QSO 统计（本地数据版本）
+function renderQsoStatsLocal(qsoReceived, qsoHeardMe) {
+    // 更新数量
+    document.getElementById('qso-calling-me-count').textContent = qsoReceived.length;
+    document.getElementById('qso-heard-me-count').textContent = qsoHeardMe.length;
+    
+    // 更新我收到的电台列表（左侧：我上报的 DX 电台）
+    const receivedList = document.getElementById('qso-calling-me-list');
+    if (qsoReceived.length === 0) {
+        receivedList.innerHTML = '<div style="color:#888;">暂无数据</div>';
+    } else {
+        receivedList.innerHTML = qsoReceived.slice(0, 20).map(q => `
+            <div class="qso-item">
+                <div class="qso-row-main">
+                    <span class="qso-callsign">${q.call}</span>
+                    <span class="qso-country">${q.country || ''}</span>
+                </div>
+                <div class="qso-row-meta">
+                    <span class="qso-freq">${(typeof q.freq === 'number' ? q.freq.toFixed(3) : q.freq) || '--'}</span>
+                    <span class="qso-mode">${q.mode || '--'}</span>
+                    <span class="qso-grid">${q.grid || ''}</span>
+                    <span class="qso-time">${formatQsoTime(q.time)}</span>
+                    ${q.age_formatted ? `<span class="qso-age">${q.age_formatted} ago</span>` : ''}
+                </div>
+                ${q.comments ? `<div class="qso-comments">${q.comments}</div>` : ''}
+            </div>
+        `).join('');
+    }
+    
+    // 更新收到我电台列表（右侧：别人上报我的）
+    const heardList = document.getElementById('qso-heard-me-list');
+    if (qsoHeardMe.length === 0) {
+        heardList.innerHTML = '<div style="color:#888;">暂无数据</div>';
+    } else {
+        heardList.innerHTML = qsoHeardMe.slice(0, 20).map(q => `
+            <div class="qso-item">
+                <div class="qso-row-main">
+                    <span class="qso-callsign">${q.call}</span>
+                    <span class="qso-spotter" title="Spotter">${q.country || ''}</span>
+                </div>
+                <div class="qso-row-meta">
+                    <span class="qso-freq">${(typeof q.freq === 'number' ? q.freq.toFixed(3) : q.freq) || '--'}</span>
+                    <span class="qso-mode">${q.mode || '--'}</span>
+                    <span class="qso-grid">${q.grid || ''}</span>
+                    <span class="qso-time">${formatQsoTime(q.time)}</span>
+                    ${q.age_formatted ? `<span class="qso-age">${q.age_formatted} ago</span>` : ''}
+                </div>
+                ${q.comments ? `<div class="qso-comments">${q.comments}</div>` : ''}
+            </div>
+        `).join('');
+    }
+}
+
+// 旧的 QSO 统计函数（保留用于实时数据）
+function updateQsoStatsOld() {
     if (!spotHistory || spotHistory.length === 0) return;
+    
+    console.log(`[QSO Debug] spotHistory.length=${spotHistory.length}, myCall=${MY_STATION.callsign}`);
     
     qsoReceived = []; // 我收到的电台（由我上报的 spot）
     qsoHeardMe = []; // 收到我电台的列表（其他台上报听到我）
     
-    // 从最近的 spot 中筛选
-    const recentSpots = spotHistory.slice(-200); // 看最近 200 条
+    // 从最近的 spot 中筛选（如果历史少于 500 条，检查全部）
+    const checkAll = spotHistory.length <= 500;
+    const spotsToCheck = checkAll ? spotHistory : spotHistory.slice(-200);
+    
     const myCall = MY_STATION.callsign.toUpperCase();
     
-    recentSpots.forEach(entry => {
+    spotsToCheck.forEach((entry, index) => {
         const spot = entry.spot;
-        const comments = (spot.comments || '').toUpperCase();
-        const deCall = (spot.de_call || '').toUpperCase();
+        const comments = (spot.comment || '').toUpperCase();
+        const reporter = (spot.reporter || '').toUpperCase();
+        const dxCall = (spot.callsign || '').toUpperCase();
         
-        // 判断是否是我上报的 spot（de_call 是我的呼号）
-        if (deCall === myCall) {
-            // 这是我接收并上报的 DX 电台
-            if (!qsoReceived.find(q => q.call === spot.dx_call || q.call === spot.de_call)) {
-                // 提取 DX 电台呼号（spot 对象里的 dx_call 或从 comments 提取）
-                let dxCall = spot.dx_call || extractDxCallsign(comments, myCall);
-                if (dxCall && dxCall !== myCall) {
-                    qsoReceived.push({
-                        call: dxCall,
-                        country: spot.country || guessCountry(dxCall),
-                        freq: spot.freq || spot.de_freq || '',
-                        mode: spot.mode || '',
-                        signal: spot.signal || extractSignal(comments),
-                        time: spot.time,
-                        band: spot.band || freqToBand(spot.de_freq),
-                        comments: spot.comments || ''
-                    });
-                }
+        if (dxCall && dxCall.includes('BG2ENW')) {
+            console.log(`[BG2ENW Spot #${index}] dxCall=${dxCall}, reporter=${reporter}`);
+        }
+        
+        if (reporter === myCall) {
+            if (!qsoReceived.find(q => q.call === dxCall)) {
+                qsoReceived.push({
+                    call: dxCall,
+                    country: spot.dxcc || spot.country || guessCountry(dxCall),
+                    freq: spot.freq || '',
+                    mode: spot.mode || '',
+                    signal: spot.signal || extractSignal(comments),
+                    time: spot.time || spot.timestamp || spot._server_ts,
+                    band: spot.band || freqToBand(spot.freq),
+                    comments: spot.comment || ''
+                });
+            }
+        } else if (dxCall === myCall) {
+            // 别人上报我的呼叫（CQ 或别人听到我）
+            if (!qsoHeardMe.find(q => q.call === reporter)) {
+                const rst = extractRST(comments);
+                qsoHeardMe.push({
+                    call: reporter,
+                    country: spot.dxcc || spot.country || guessCountry(reporter),
+                    freq: spot.freq || '',
+                    mode: spot.mode || '',
+                    signal: rst || extractSignal(comments),
+                    time: spot.time || spot.timestamp || spot._server_ts,
+                    band: spot.band || freqToBand(spot.freq)
+                });
             }
         } else {
-            // 其他台上报的 spot，检查是否听到我
-            if (comments.includes(myCall) && (comments.includes('HEARD') || comments.includes('抄收') || comments.includes('RST') || comments.includes('R ' + myCall))) {
-                // 其他台表示听到我
-                if (!qsoHeardMe.find(q => q.call === deCall)) {
-                    // 从 comments 提取信号报告
+            // 其他台上报的 spot，检查是否听到我（comments 中包含我的呼号）
+            const heardKeywords = ['HEARD', '抄收', 'RST', 'R ' + myCall, 'WORKED', 'QSO', 'CQ ' + myCall, myCall + ' K', 'PSE ' + myCall];
+            const isHeard = heardKeywords.some(kw => comments.includes(kw));
+            
+            if (comments.includes(myCall) && isHeard) {
+                if (!qsoHeardMe.find(q => q.call === reporter)) {
                     const rst = extractRST(comments);
                     qsoHeardMe.push({
-                        call: deCall,
-                        country: spot.country || guessCountry(deCall),
-                        freq: spot.freq || spot.de_freq || '',
+                        call: reporter,
+                        country: spot.dxcc || spot.country || guessCountry(reporter),
+                        freq: spot.freq || '',
                         mode: spot.mode || '',
                         signal: rst || extractSignal(comments),
-                        time: spot.time,
-                        band: spot.band || freqToBand(spot.de_freq)
+                        time: spot.time || spot.timestamp || spot._server_ts,
+                        band: spot.band || freqToBand(spot.freq)
                     });
                 }
             }
         }
     });
+    
+    console.log(`[QSO 统计] qsoReceived=${qsoReceived.length}, qsoHeardMe=${qsoHeardMe.length}`);
     
     // 按时间排序，最新的在前
     qsoReceived.sort((a, b) => new Date(b.time) - new Date(a.time));
@@ -623,9 +741,17 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => {
         const el = document.getElementById('cache-count');
         if (el) el.textContent = spotHistory.length;
-        updateQsoStats(); // 更新 QSO 统计
     }, 5000);
     setInterval(() => { if (showHeatmap) updateHeatmap(); }, 30000);
+    
+    // 加载筛选偏好
+    loadFilterPreferences();
+    
+    // My Spots 每 45 秒刷新一次
+    setInterval(() => { 
+        console.log('[MySpots] 定时刷新');
+        updateQsoStats(); 
+    }, 45000);
     loadPropagation();
     setInterval(loadPropagation, 300000);
     loadTrends();
@@ -1229,6 +1355,11 @@ function initSocket() {
         if (!isValidSpot(spotData)) return;
 
         addSpotToHistory(spotData);
+        
+        // 如果是我自己的呼号，立即更新 QSO 统计
+        if (spotData.callsign && spotData.callsign.toUpperCase() === MY_STATION.callsign.toUpperCase()) {
+            updateQsoStats();
+        }
 
         totalSpots++;
         document.getElementById('total-spots').textContent = totalSpots;
@@ -1297,7 +1428,6 @@ async function loadHistory() {
         const data = await resp.json();
 
         if (data.spots && data.spots.length > 0) {
-            console.log(`加载历史: ${data.spots.length} 条`);
             data.spots.forEach(spot => {
                 if (!isValidSpot(spot)) return;
                 addSpotToHistory(spot, true);
@@ -1316,6 +1446,7 @@ async function loadHistory() {
             }
 
             rerenderAllMarkers();
+            updateQsoStats(); // 加载历史后更新 QSO 统计
         }
     } catch (e) {
         console.error('加载历史失败:', e);
@@ -1388,7 +1519,6 @@ function createSpotMarker(spotData) {
         const marker = L.marker([spotData.lat, spotData.lon], {icon: icon}).addTo(map);
 
         const gridInfo = spotData.grid ? '<br/>📍 Grid: ' + spotData.grid : '';
-        console.log(`[DEBUG] ${spotData.callsign}: grid=${spotData.grid}, precision=${spotData.precision}, freq=${spotData.freq}`);
         const cqItuInfo = (spotData.cq || spotData.itu) ? 
             '<br/>🗺️ CQ:' + (spotData.cq || '?') + ' ITU:' + (spotData.itu || '?') : '';
         const lotwBadge = spotData.lotw_verified ? 
@@ -1778,3 +1908,39 @@ function renderBandOpening(forecast) {
     container.innerHTML = html;
 }
 
+
+/**
+ * 应用 Age 筛选条件
+ */
+function applyAgeFilter() {
+    const select = document.getElementById('age-filter-select');
+    const hours = parseInt(select.value) || 0;
+    ageFilterHours = hours;
+    
+    console.log(`[AgeFilter] 应用筛选：${hours ? hours + '小时' : '全部'}`);
+    
+    // 立即刷新 My Spots
+    updateQsoStats();
+}
+
+/**
+ * 保存筛选偏好到 localStorage
+ */
+function saveFilterPreferences() {
+    localStorage.setItem('dxGuardian_ageFilter', ageFilterHours.toString());
+}
+
+/**
+ * 从 localStorage 加载筛选偏好
+ */
+function loadFilterPreferences() {
+    const saved = localStorage.getItem('dxGuardian_ageFilter');
+    if (saved !== null) {
+        ageFilterHours = parseInt(saved) || 6;
+        const select = document.getElementById('age-filter-select');
+        if (select) {
+            select.value = ageFilterHours.toString();
+        }
+        console.log(`[AgeFilter] 加载保存的筛选：${ageFilterHours}小时`);
+    }
+}
