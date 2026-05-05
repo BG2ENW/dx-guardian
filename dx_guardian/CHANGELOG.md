@@ -242,3 +242,87 @@
 
 **更新日期**: 2026-05-05  
 **维护状态**: 🟢 活跃开发中
+
+---
+
+## [2026-05-05] Chart.js 可视化与 Wavelog API 集成
+
+### 新增功能
+
+#### 1. Chart.js 图表可视化系统
+- **文件**: `frontend/pages/log_analysis.html`
+- **功能**:
+  - 4 个交互式 Chart.js 图表（v4.4.0）
+  - DXCC 分布 TOP 15（横向条形图）
+  - 波段分布（圆环图，支持 10 个波段）
+  - 模式分布（饼图，FT8/CW/FT4 占比）
+  - 24 小时活动分布（折线图，UTC 时间）
+- **特性**:
+  - 响应式布局，移动端适配
+  - 深色主题与主站一致
+  - 数据源切换下拉框
+  - 实时刷新按钮
+  - 加载时间和性能显示
+
+#### 2. Wavelog OnlineLog API 适配器
+- **文件**: `backend/wavelog_adapter.py`
+- **类**: `WavelogAPIAdapter`
+- **功能**:
+  - 支持 Wavelog QSO API 认证
+  - 按日期范围获取 QSO（默认 365 天）
+  - 按呼号查询特定 QSO
+  - 5 分钟内存缓存机制
+  - 字段标准化映射（ADIF → 内部格式）
+- **配置**:
+  - `WAVELOG_URL`: Wavelog 实例地址
+  - `WAVELOG_API_KEY`: API 密钥
+  - `WAVELOG_STATION_CALLSIGN`: 站台呼号（可选）
+
+#### 3. 分析 API 多数据源支持
+- **端点**: `GET /api/analysis/summary`
+- **参数**: `?source=current|wavelog|adi`
+- **数据源**:
+  - `current`: Cluster 实时数据（SQLite `spot_history` 表）
+  - `wavelog`: Wavelog OnlineLog API
+  - `adi`: 本地 ADIF 文件（`wsjtx_log.adi`）
+
+#### 4. 配置更新
+- **文件**: `backend/config.py`
+- **新增配置项**:
+  ```python
+  WAVELOG_URL = 'https://cqcqcq.com.cn/'
+  WAVELOG_API_KEY = 'wl853e15b5f7745'
+  WAVELOG_STATION_CALLSIGN = ''
+  LOG_ANALYSIS_MAX_DAYS = 365
+  LOG_ANALYSIS_CACHE_TTL = 300
+  ```
+
+### 技术改进
+
+#### 前端
+- 引入 Chart.js CDN（4.4.0）
+- 实现 8 字段数据列表展示
+- 橙色 Age 标签样式（`#FF9800`）
+- 响应式图表布局（Grid 系统）
+
+#### 后端
+- 添加 `/pages/<path:f>` 静态路由
+- 分析引擎支持多数据源切换
+- Wavelog 适配器工厂模式
+- SQLite 查询优化（`spot_history` 表）
+
+### 测试数据
+- 使用真实 Cluster 数据（约 4000+ 条）
+- 支持 wsjtx_log.adi 测试文件
+- Wavelog API 联调准备就绪
+
+### 已知问题
+- Wavelog API 适配器未进行生产环境测试
+- 移动端图表交互体验可进一步优化
+
+### 下一版本计划
+- Wavelog API 实际联调测试
+- LoTW 确认状态集成
+- 导出图表为 PNG/PDF
+- 自定义时间范围分析
+

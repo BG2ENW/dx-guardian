@@ -81,7 +81,7 @@ class ADIFParser:
     """ADIF 文件解析器"""
     
     # 必需字段
-    REQUIRED_FIELDS = ['CALL', 'BAND', 'MODE', 'QSO_DATE', 'TIME_ON']
+    REQUIRED_FIELDS = ['CALL', 'MODE', 'QSO_DATE', 'TIME_ON']
     
     # 日期格式：YYYYMMDD -> YYYY-MM-DD
     # 时间格式：HHMMSS -> HH:MM:SS
@@ -166,7 +166,7 @@ class ADIFParser:
         for match in matches:
             name = match[0].upper()
             length = int(match[1])
-            value = match[3]
+            value = match[3].strip()
             fields[name] = value
         
         # 验证必需字段
@@ -175,14 +175,19 @@ class ADIFParser:
                 raise ADIFParserError(f"缺少必需字段: {field}")
         
         # 构建对象
+        freq_mhz = self._parse_freq(fields.get('FREQ'))
+        band = fields.get('BAND') or self._band_from_freq_mhz(freq_mhz)
+        if not band:
+            raise ADIFParserError("缺少必需字段: BAND 或 FREQ")
+
         return QSORecord(
             call=fields['CALL'],
-            band=fields['BAND'],
+            band=band,
             mode=fields['MODE'],
             qso_date=self._format_date(fields['QSO_DATE']),
             time_on=self._format_time(fields['TIME_ON']),
             band_rx=fields.get('BAND_RX'),
-            freq=self._parse_freq(fields.get('FREQ')),
+            freq=freq_mhz,
             freq_rx=self._parse_freq(fields.get('FREQ_RX')),
             rst_sent=fields.get('RST_SENT'),
             rst_rcvd=fields.get('RST_RCVD'),
@@ -231,6 +236,38 @@ class ADIFParser:
             return float(freq_str)
         except ValueError:
             return None
+
+    def _band_from_freq_mhz(self, freq_mhz: Optional[float]) -> Optional[str]:
+        """根据频率(MHz)推导业余无线电波段。"""
+        if freq_mhz is None:
+            return None
+        if freq_mhz < 2:
+            return None
+        if freq_mhz < 2.5:
+            return '160m'
+        if freq_mhz < 4.5:
+            return '80m'
+        if freq_mhz < 5.5:
+            return '60m'
+        if freq_mhz < 7.5:
+            return '40m'
+        if freq_mhz < 10.5:
+            return '30m'
+        if freq_mhz < 14.5:
+            return '20m'
+        if freq_mhz < 18.5:
+            return '17m'
+        if freq_mhz < 21.5:
+            return '15m'
+        if freq_mhz < 25:
+            return '12m'
+        if freq_mhz < 29.5:
+            return '10m'
+        if freq_mhz < 54:
+            return '6m'
+        if freq_mhz < 148:
+            return '2m'
+        return None
     
     def _parse_int(self, int_str: Optional[str]) -> Optional[int]:
         """解析整数"""

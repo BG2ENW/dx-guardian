@@ -495,6 +495,11 @@ def js(f):
 def images(f):
     return send_from_directory(FRONTEND_DIR / 'images', f)
 
+
+@app.route('/pages/<path:f>')
+def serve_pages(f):
+    return send_from_directory(FRONTEND_DIR / 'pages', f)
+
 @app.route('/health')
 def health():
     with lock:
@@ -1554,6 +1559,155 @@ def api_band_opening():
     except Exception as e:
         import traceback
         return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
+
+# ========== 日志分析 API ==========
+
+@app.route('/api/analysis/summary', methods=['GET'])
+def api_analysis_summary():
+    """获取日志统计摘要 - 支持多数据源"""
+    import sqlite3
+    from log_analyzer import get_analyzer
+    from wavelog_adapter import get_wavelog_adapter
+    from adif_parser import ADIFParser
+    
+    source = request.args.get('source', 'current')
+    
+    try:
+        logs = []
+        source_name = ''
+        
+        if source == 'wavelog':
+            # Wavelog API 数据源
+            adapter = get_wavelog_adapter()
+            if not adapter:
+                return jsonify({
+                    'success': False,
+                    'error': 'Wavelog 未配置，请设置 WAVELOG_URL 和 WAVELOG_API_KEY'
+                }), 400
+            
+            logs = adapter.get_all_qsos(days_back=365)
+            source_name = f'Wavelog ({len(logs)} QSO)'
+            
+        elif source == 'adi':
+            # ADIF 文件数据源
+            adi_path = '/workspace/dx_guardian/wsjtx_log.adi'
+            if Path(adi_path).exists():
+                parser = ADIFParser()
+                records, _ = parser.parse_file(adi_path)
+                logs = [r.to_dict() for r in records]
+            source_name = 'ADIF 文件'
+            
+        else:
+            # 默认：当前 Cluster 数据
+            conn = sqlite3.connect(get_database().db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute('SELECT callsign, dxcc, freq, mode, grid FROM spot_history')
+            rows = cursor.fetchall()
+            conn.close()
+            
+            logs = [{'call': r['callsign'], 'dxcc': r['dxcc'], 'freq': float(r['freq']) if r['freq'] else 0, 'mode': r['mode'] or '', 'grid': r['grid'] or ''} for r in rows]
+            source_name = 'Cluster 实时数据'
+        
+        if not logs:
+            return jsonify({
+                'success': False,
+                'error': '没有数据可分析'
+            }), 404
+        
+        # 统计
+        stats = {
+            'total_qso': len(logs),
+            'unique_dxcc': len(set(l.get('dxcc') for l in logs if l.get('dxcc'))),
+            'unique_calls': len(set(l.get('call') for l in logs)),
+            'unique_grids': len(set(l.get('grid') for l in logs if l.get('grid')))
+        }
+        
+        # 完整分析
+        analyzer = get_analyzer()
+        analysis = analyzer.analyze_all(logs)
+        
+        log(f'[日志分析] 完成分析：{stats["total_qso"]} 条 QSO (源：{source_name})')
+        
+        return jsonify({
+            'success': True,
+            'source': source_name,
+            'summary': stats,
+            'analysis': analysis
+        })
+        
+    except Exception as e:
+        import traceback
+        log(f'[日志分析] 失败：{e}')
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'trace': traceback.format_exc()
+        }), 500
+
+
+@app.route('/api/analysis/dxcc', methods=['GET'])
+def api_analysis_dxcc():
+    """DXCC 专项分析"""
+    from log_analyzer import WSJTXLogAdapter, get_analyzer
+    
+    try:
+        adapter = WSJTXLogAdapter('/workspace/dx_guardian/wsjtx_log.adi')
+        logs = adapter.get_logs()
+        
+        analyzer = get_analyzer()
+        dxcc_analysis = analyzer._analyze_dxcc(logs)
+        
+        return jsonify({
+            'success': True,
+            'dxcc_distribution': dxcc_analysis
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/analysis/bands', methods=['GET'])
+def api_analysis_bands():
+    """波段专项分析"""
+    from log_analyzer import WSJTXLogAdapter, get_analyzer
+    
+    try:
+        adapter = WSJTXLogAdapter('/workspace/dx_guardian/wsjtx_log.adi')
+        logs = adapter.get_logs()
+        
+        analyzer = get_analyzer()
+        band_analysis = analyzer._analyze_bands(logs)
+        
+        return jsonify({
+            'success': True,
+            'band_distribution': band_analysis
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/analysis/modes', methods=['GET'])
+def api_analysis_modes():
+    """模式专项分析"""
+    from log_analyzer import WSJTXLogAdapter, get_analyzer
+    
+    try:
+        adapter = WSJTXLogAdapter('/workspace/dx_guardian/wsjtx_log.adi')
+        logs = adapter.get_logs()
+        
+        analyzer = get_analyzer()
+        mode_analysis = analyzer._analyze_modes(logs)
+        
+        return jsonify({
+            'success': True,
+            'mode_distribution': mode_analysis
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     log(f'Frontend: {FRONTEND_DIR}')

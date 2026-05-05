@@ -121,3 +121,23 @@ DEFAULT_USER_CONFIG = {
     'antenna_height': 10,
     'antenna_gain': 0,
 }
+# ===== Cluster 去重配置 =====
+# 去重时间窗口 (秒) - 同一呼号 + 频率 + 模式在此窗口内视为重复
+DEDUP_WINDOW_SECONDS = int(os.getenv('DEDUP_WINDOW_SECONDS', '300'))
+
+# 去重缓存最大大小
+DEDUP_MAX_SIZE = int(os.getenv('DEDUP_MAX_SIZE', '10000'))
+
+# ===== Wavelog OnlineLog 配置 =====
+# Wavelog 实例 URL (如 https://log.example.com)
+WAVELOG_URL = os.getenv('WAVELOG_URL', 'https://cqcqcq.com.cn/')
+
+# Wavelog API 密钥 (在 Wavelog 设置中生成)
+WAVELOG_API_KEY = os.getenv('WAVELOG_API_KEY', 'wl853e15b5f7745')
+
+# 站台呼号 (可选，用于多站台站点)
+WAVELOG_STATION_CALLSIGN = os.getenv('WAVELOG_STATION_CALLSIGN', '')
+
+# 日志分析配置
+LOG_ANALYSIS_MAX_DAYS = int(os.getenv('LOG_ANALYSIS_MAX_DAYS', '365'))  # 默认分析最近 365 天
+LOG_ANALYSIS_CACHE_TTL = int(os.getenv('LOG_ANALYSIS_CACHE_TTL', '300'))  # 缓存 5 分钟

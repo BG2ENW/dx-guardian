@@ -1944,3 +1944,71 @@ function loadFilterPreferences() {
         console.log(`[AgeFilter] 加载保存的筛选：${ageFilterHours}小时`);
     }
 }
+
+/**
+ * 导出 ADIF
+ */
+async function exportADIF() {
+    const hours = 24;
+    const callsign = MY_STATION.callsign;
+    
+    console.log('[ADIF] 导出请求...');
+    
+    try {
+        const url = `/api/user/logs/export?hours=${hours}&call=${callsign}`;
+        
+        // 创建下载链接
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `dx_guardian_${callsign}_${new Date().toISOString().slice(0,10)}.adi`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        console.log('[ADIF] ✅ 导出成功');
+        
+    } catch (e) {
+        console.error('[ADIF] ❌ 导出失败:', e);
+        alert('导出失败：' + e.message);
+    }
+}
+
+/**
+ * 导入 ADIF
+ */
+async function importADIF(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    console.log('[ADIF] 导入文件:', file.name);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const resp = await fetch('/api/user/logs/import', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await resp.json();
+        
+        if (result.success) {
+            console.log(`[ADIF] ✅ 导入成功：${result.imported}/${result.total} 条`);
+            alert(`✅ 导入成功！\n导入 ${result.imported} 条 QSO\n共 ${result.total} 条记录`);
+            
+            // 刷新 My Spots
+            updateQsoStats();
+        } else {
+            console.error('[ADIF] ❌ 导入失败:', result.error);
+            alert('导入失败：' + result.error);
+        }
+        
+    } catch (e) {
+        console.error('[ADIF] ❌ 导入异常:', e);
+        alert('导入异常：' + e.message);
+    }
+    
+    // 清空 input
+    input.value = '';
+}

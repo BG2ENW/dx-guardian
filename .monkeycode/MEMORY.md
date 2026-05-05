@@ -92,3 +92,10 @@ Agent 在任务执行过程中发现的条目应遵循以下格式：
 - Instructions:
   - 呼号到 Grid 的快速索引需要落盘到 `dx_guardian/backend/data/psk_grid_cache.json`，避免服务重启后丢失并再次回退 CTY。
   - 启动时先加载缓存，运行中仅在 Grid 变更时批量保存，可降低 I/O 并保持地图定位连续性。
+
+[Wavelog API 权限范围确认]
+- Date: 2026-05-05
+- Context: 用户在日志分析联调阶段明确说明
+- Category: 环境配置
+- Instructions:
+  - 当前 `WAVELOG_API_KEY` 被用户确认可用于 QSO 查询。
