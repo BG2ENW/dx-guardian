@@ -11,7 +11,9 @@ import time
 import socket as sock_module
 import threading
 import traceback
+import logging
 from datetime import datetime, timezone
+from apscheduler.schedulers.background import BackgroundScheduler
 
 BASE_DIR = Path(__file__).parent.parent
 FRONTEND_DIR = BASE_DIR / 'frontend'
@@ -24,8 +26,12 @@ from config import (
     SOCKETIO_CORS_ALLOWED_ORIGINS, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY_PEM,
     VAPID_EMAIL
 )
+# 日志配置
+logging.basicConfig()
+logging.getLogger('apscheduler').setLevel(logging.INFO)
+
+from spot_database import get_database, SpotDatabase
 from spot_parser import SpotParser, SpotDeduplicator, SpotRateLimiter
-from coordinate_resolver import resolve_coordinates
 from coordinate_resolver import resolve_coordinates
 from adif_parser import ADIFParser
 from dxcc_translator import get_dxcc_cn, translate_dxcc_list
@@ -240,8 +246,61 @@ last_cluster_success = 0  # Cluster最后成功时间
 cluster_should_run = False  # Cluster是否应该运行（备用模式）
 
 # 后端 Spot 缓存（持续积累，不受前端连接影响）
-SPOT_HISTORY_MAX = 10000  # 改为 1 万条缓存
-spot_history = []  # 所有处理过的 Spot（含时间戳）
+SPOT_HISTORY_MAX = 100000  # 10 万条缓存
+SPOT_HISTORY_HOURS = 168  # 保留 7 天 (168 小时)
+spot_history = []  # 所有处理过的 Spot（含时间戳）- 内存缓存（快速访问）
+
+# SQLite 数据库（持久化）
+db = None
+
+def init_database():
+    """初始化数据库"""
+    global db
+    db = get_database()
+    log(f"[数据库] 初始化完成，路径：{db.db_path}")
+
+def init_cleanup_scheduler():
+    """初始化数据库清理定时任务"""
+    scheduler = BackgroundScheduler()
+    
+    @scheduler.scheduled_job('cron', hour=2, minute=0, id='daily_cleanup')
+    def daily_cleanup():
+        """每日凌晨 2 点清理 7 天前的数据"""
+        db = get_database()
+        deleted_time, deleted_count = db.cleanup_old_data(days=7)
+        total_deleted = deleted_time + deleted_count
+        if total_deleted > 0:
+            log(f"[Cleanup] 清理完成：删除 {total_deleted} 条记录 (时间:{deleted_time}, 数量:{deleted_count})")
+        else:
+            log("[Cleanup] 无需清理")
+    
+    # 立即执行一次清理（启动时）
+    log("[Cleanup] 启动时执行首次清理...")
+    try:
+        db = get_database()
+        deleted_time, deleted_count = db.cleanup_old_data(days=7, max_records=100000)
+        total_deleted = deleted_time + deleted_count
+        if total_deleted > 0:
+            log(f"[Cleanup] 启动清理完成：删除 {total_deleted} 条记录")
+    except Exception as e:
+        log(f"[Cleanup] 启动清理失败：{e}")
+    
+    # 启动定时任务
+    scheduler.start()
+    log("[Cleanup] 定时任务已启动：每日 02:00 自动清理")
+    
+    return scheduler
+
+# 从数据库加载最近的 spot 到内存缓存
+def load_spots_from_db(limit=1000):
+    """从数据库加载最近的 spot 到内存"""
+    global spot_history
+    if db is None:
+        return
+    
+    recent = db.get_recent_spots(limit=limit, hours=24)
+    spot_history.extend(recent)
+    log(f"[数据库] 加载 {len(recent)} 条历史记录到内存缓存")
 latest_psk_grid_by_callsign = {}  # 呼号 -> 最近一次 PSK Reporter Grid
 PSK_GRID_CACHE_FILE = BACKEND_DIR / 'data' / 'psk_grid_cache.json'
 PSK_GRID_CACHE_MAX = 50000
@@ -453,6 +512,22 @@ def health():
 @app.route('/api/history')
 def api_history():
     """返回后端缓存的所有 Spot 历史（前端打开页面时加载）"""
+    global db
+    
+    # 优先从数据库获取最近的数据
+    if db is not None:
+        try:
+            recent_spots = db.get_recent_spots(limit=1000, hours=24)
+            with lock:
+                return jsonify({
+                    'spots': recent_spots,
+                    'total': total_spots,
+                    'band_counts': dict(band_counts)
+                })
+        except Exception as e:
+            log(f"[数据库] 读取失败：{e}")
+    
+    # 回退到内存缓存
     with lock:
         return jsonify({
             'spots': spot_history.copy(),
@@ -460,8 +535,138 @@ def api_history():
             'band_counts': dict(band_counts)
         })
 
+@app.route('/api/myspots', methods=['GET'])
+def api_myspots():
+    """返回与指定呼号相关的 Spot 历史（My Spots 面板使用）"""
+    global db
+    
+    callsign = request.args.get('call', '').upper().strip()
+    if not callsign:
+        return jsonify({'error': 'callsign required'}), 400
+    
+    # 获取 age 筛选参数（小时）
+    age_hours = request.args.get('age_hours', type=int)  # 例：6 表示最近 6 小时
+    
+    # 优先从数据库查询
+    if db is not None:
+        try:
+            # 根据 age_hours 计算查询时间范围
+            query_hours = age_hours if age_hours else 168  # 默认 168 小时（7 天）
+            i_spotted, they_spotted_me = db.get_related_spots(callsign, limit=500, hours=query_hours)
+            total = db.count_total()
+            
+            # 计算 age 并添加字段
+            import time
+            def calc_age(ts): return int(time.time() - ts)
+            def fmt_age(secs):
+                if secs < 60: return f"{secs}s"
+                elif secs < 3600: return f"{secs // 60}m"
+                elif secs < 86400: return f"{secs // 3600}h"
+                else: return f"{secs // 86400}d"
+            
+            for spot in i_spotted:
+                age = calc_age(spot.get('_server_ts', time.time()))
+                spot['age'] = age
+                spot['age_formatted'] = fmt_age(age)
+            
+            for spot in they_spotted_me:
+                age = calc_age(spot.get('_server_ts', time.time()))
+                spot['age'] = age
+                spot['age_formatted'] = fmt_age(age)
+            
+            return jsonify({
+                'callsign': callsign,
+                'i_spotted': i_spotted,
+                'they_spotted_me': they_spotted_me,
+                'total_history': total,
+                'from_db': True,
+                'age_filter_hours': age_hours  # 返回应用的筛选条件
+            })
+        except Exception as e:
+            log(f"[数据库] 查询失败：{e}")
+    
+    # 回退到内存缓存
+    with lock:
+        related = [s for s in spot_history if s.get('reporter', '').upper() == callsign or s.get('callsign', '').upper() == callsign]
+        i_spotted = [s for s in related if s.get('reporter', '').upper() == callsign]
+        they_spotted_me = [s for s in related if s.get('callsign', '').upper() == callsign]
+        
+        return jsonify({
+            'callsign': callsign,
+            'i_spotted': i_spotted,
+            'they_spotted_me': they_spotted_me,
+            'total_history': len(spot_history),
+            'from_db': False
+        })
 
-# =========== 预警 API（V2增强版）===========
+@app.route('/api/spot/submit', methods=['POST'])
+def api_submit_spot():
+    """接收 JTDX 或其他客户端上报的 Spot"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON body required'}), 400
+    
+    callsign = (data.get('callsign') or '').upper().strip()
+    reporter = (data.get('reporter') or '').upper().strip()
+    freq = data.get('freq')
+    mode = (data.get('mode') or '').upper().strip()
+    
+    if not callsign or not reporter or not freq or not mode:
+        return jsonify({'error': 'callsign, reporter, freq, mode required'}), 400
+    
+    # 构造 spot 对象
+    spot = {
+        'callsign': callsign,
+        'reporter': reporter,
+        'freq': float(freq),
+        'mode': mode,
+        'comment': data.get('comment', ''),
+        'grid': data.get('grid', ''),
+        'time': data.get('time', datetime.now(timezone.utc).strftime('%H%MZ')),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'source': 'jtdx_api'
+    }
+    
+    # 计算波段
+    freq_khz = float(freq) * 1000 if float(freq) < 1000 else float(freq)  # MHz 转 kHz
+    if freq_khz < 500: spot['band'] = '160m'
+    elif freq_khz < 4000: spot['band'] = '80m'
+    elif freq_khz < 5500: spot['band'] = '60m'
+    elif freq_khz < 7500: spot['band'] = '40m'
+    elif freq_khz < 10200: spot['band'] = '30m'
+    elif freq_khz < 14500: spot['band'] = '20m'
+    elif freq_khz < 18200: spot['band'] = '17m'
+    elif freq_khz < 21500: spot['band'] = '15m'
+    elif freq_khz < 25000: spot['band'] = '12m'
+    elif freq_khz < 29000: spot['band'] = '10m'
+    elif freq_khz < 54000: spot['band'] = '6m'
+    elif freq_khz < 148000: spot['band'] = '2m'
+    else: spot['band'] = 'other'
+    
+    # 解析坐标
+    grid = spot.get('grid')
+    try:
+        coords = resolve_coordinates(callsign, grid)
+        spot['lat'] = coords.get('lat', 0)
+        spot['lon'] = coords.get('lon', 0)
+        spot['precision'] = coords.get('precision', 'dxcc')
+        spot['dxcc'] = coords.get('dxcc', '')
+    except Exception as e:
+        log(f"[API Spot] 坐标解析失败 {callsign}: {e}")
+        spot['lat'] = 0
+        spot['lon'] = 0
+    
+    # 存入历史缓存
+    add_to_history(spot)
+    
+    # 广播给前端
+    socketio.emit('new_spot', spot)
+    
+    log(f"[API Spot] 收到 JTDX 上报：{reporter} -> {callsign} {freq} {mode}")
+    return jsonify({'success': True, 'spot': spot})
+
+
+# =========== 预警 API（V2 增强版）===========
 @app.route('/api/user/alerts', methods=['GET'])
 def api_alerts():
     """获取预警列表，支持筛选"""
@@ -741,21 +946,35 @@ def backfill_recent_cluster_spots_with_grid(callsign, grid, scan_limit=2000):
 
 
 def add_to_history(spot):
-    """添加 Spot 到后端缓存（线程安全，自动清理24小时外的数据）"""
+    """添加 Spot 到后端缓存（线程安全，同时写入 SQLite 数据库）"""
+    global db
+    
     with lock:
         log(f"[历史缓存]存入 spot: {spot['callsign']} {spot['freq']} {spot['mode']}")
         spot['_server_ts'] = time.time()
         spot_history.append(spot)
         
-        # 清理逻辑：数量限制 + 24小时时间限制
+        # 同时写入 SQLite 数据库
+        if db is not None:
+            try:
+                db.insert(spot)
+            except Exception as e:
+                log(f"[数据库] 写入失败：{e}")
+        
+        # 清理逻辑：数量限制 + 时间限制
         now = time.time()
         
-        # 先删除超过24小时的数据
-        while spot_history and now - spot_history[0].get('_server_ts', 0) > 86400:
+        # 先删除超过指定时间的数据（默认 7 天）
+        max_age_seconds = 168 * 3600  # 7 天
+        while spot_history and now - spot_history[0].get('_server_ts', 0) > max_age_seconds:
             spot_history.pop(0)
         
         # 再检查数量限制
-        while len(spot_history) > SPOT_HISTORY_MAX:
+        while len(spot_history) > 100000:
+            spot_history.pop(0)
+        
+        # 再检查数量限制
+        while len(spot_history) > 100000:
             spot_history.pop(0)
 
 
@@ -1344,6 +1563,10 @@ if __name__ == '__main__':
     # 启动时加载持久化 PSK Grid 缓存，降低重启后 CTY 回退
     load_psk_grid_cache()
 
+    # ========== 初始化 SQLite 数据库 ==========
+    init_database()
+    load_spots_from_db(limit=1000)  # 加载最近 1000 条到内存缓存
+
     # Cluster 连接线程
     t = threading.Thread(target=cluster_thread, daemon=True)
     t.start()
@@ -1363,6 +1586,9 @@ if __name__ == '__main__':
 
     # 初始化评分引擎
     pass  # scorer 暂缓
+
+    # 初始化清理定时任务
+    cleanup_scheduler = init_cleanup_scheduler()
 
     # 启动 Flask-SocketIO 服务器
     socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
