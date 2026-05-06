@@ -1227,6 +1227,20 @@ def pskreporter_thread():
                     
                     # 接收台信息
                     receiver_grid = _normalize_psk_grid(recv.get('receiverLocator', ''))
+                    receiver_lat = 0
+                    receiver_lon = 0
+                    receiver_precision = ''
+
+                    if receiver_callsign and receiver_grid:
+                        try:
+                            receiver_coords = resolve_coordinates(receiver_callsign, receiver_grid)
+                            receiver_lat = receiver_coords.get('lat', 0) or 0
+                            receiver_lon = receiver_coords.get('lon', 0) or 0
+                            receiver_precision = receiver_coords.get('precision', '') or ''
+                        except Exception:
+                            receiver_lat = 0
+                            receiver_lon = 0
+                            receiver_precision = ''
                     
                     # 设备和天线信息
                     decoder_software = recv.get('decoderSoftware', '')
@@ -1256,11 +1270,15 @@ def pskreporter_thread():
                         'grid': grid,
                         'snr': snr,
                         'source': 'pskreporter',
+                        'psk_role': 'sender',
                         'time': display_time,
                         'timestamp': flow_start,
                         # 接收台信息
                         'receiver': receiver_callsign,
                         'receiver_grid': receiver_grid,
+                        'receiver_lat': receiver_lat,
+                        'receiver_lon': receiver_lon,
+                        'receiver_precision': receiver_precision,
                         # 设备信息
                         'decoder_software': decoder_software,
                         'antenna_info': antenna_info,
@@ -1566,11 +1584,122 @@ def api_band_opening():
 def api_analysis_summary():
     """获取日志统计摘要 - 支持多数据源"""
     import sqlite3
+    import calendar
     from log_analyzer import get_analyzer
     from wavelog_adapter import get_wavelog_adapter
     from adif_parser import ADIFParser
     
     source = request.args.get('source', 'current')
+    range_value = request.args.get('range', '24h').strip().lower()
+    start_ts_arg = request.args.get('start_ts', '').strip()
+    end_ts_arg = request.args.get('end_ts', '').strip()
+
+    def parse_range_to_seconds(value):
+        mapping = {
+            '15m': 15 * 60,
+            '1h': 60 * 60,
+            '6h': 6 * 60 * 60,
+            '24h': 24 * 60 * 60,
+        }
+        return mapping.get(value)
+
+    def parse_datetime_to_ts(value):
+        if not value:
+            return None
+        try:
+            return float(value)
+        except ValueError:
+            pass
+        try:
+            if value.endswith('Z'):
+                value = value.replace('Z', '+00:00')
+            dt = datetime.fromisoformat(value)
+            if dt.tzinfo is None:
+                return dt.replace(tzinfo=timezone.utc).timestamp()
+            return dt.timestamp()
+        except Exception:
+            return None
+
+    now_ts = time.time()
+    start_ts = parse_datetime_to_ts(start_ts_arg)
+    end_ts = parse_datetime_to_ts(end_ts_arg)
+
+    if start_ts is None and end_ts is None:
+        range_seconds = parse_range_to_seconds(range_value)
+        if range_seconds is not None:
+            start_ts = now_ts - range_seconds
+            end_ts = now_ts
+
+    if end_ts is None:
+        end_ts = now_ts
+
+    if start_ts is not None and end_ts is not None and start_ts > end_ts:
+        start_ts, end_ts = end_ts, start_ts
+
+    def parse_qso_ts(log_item):
+        qso_date = (log_item.get('qso_date') or '').strip()
+        time_on = (log_item.get('time_on') or '').strip()
+        if len(qso_date) != 8:
+            return None
+
+        hh = '00'
+        mm = '00'
+        ss = '00'
+        if len(time_on) >= 2:
+            hh = time_on[:2]
+        if len(time_on) >= 4:
+            mm = time_on[2:4]
+        if len(time_on) >= 6:
+            ss = time_on[4:6]
+
+        try:
+            dt = datetime(
+                int(qso_date[0:4]),
+                int(qso_date[4:6]),
+                int(qso_date[6:8]),
+                int(hh),
+                int(mm),
+                int(ss),
+                tzinfo=timezone.utc
+            )
+            return calendar.timegm(dt.utctimetuple())
+        except Exception:
+            return None
+
+    def in_time_window(ts_value):
+        if ts_value is None:
+            return start_ts is None
+        if start_ts is not None and ts_value < start_ts:
+            return False
+        if end_ts is not None and ts_value > end_ts:
+            return False
+        return True
+
+    def summarize_time_age(log_items):
+        buckets = {
+            'fresh': {'label': '0-5m', 'color': '#3fb950', 'count': 0},
+            'recent': {'label': '5-30m', 'color': '#58a6ff', 'count': 0},
+            'warm': {'label': '30-120m', 'color': '#d29922', 'count': 0},
+            'stale': {'label': '120m+', 'color': '#e94560', 'count': 0},
+            'unknown': {'label': 'unknown', 'color': '#8b949e', 'count': 0},
+        }
+
+        for log_item in log_items:
+            ts_value = log_item.get('_ts')
+            if ts_value is None:
+                buckets['unknown']['count'] += 1
+                continue
+            age_min = max(0, (now_ts - ts_value) / 60.0)
+            if age_min <= 5:
+                buckets['fresh']['count'] += 1
+            elif age_min <= 30:
+                buckets['recent']['count'] += 1
+            elif age_min <= 120:
+                buckets['warm']['count'] += 1
+            else:
+                buckets['stale']['count'] += 1
+
+        return buckets
     
     try:
         logs = []
@@ -1586,6 +1715,9 @@ def api_analysis_summary():
                 }), 400
             
             logs = adapter.get_all_qsos(days_back=365)
+            for log_item in logs:
+                log_item['_ts'] = parse_qso_ts(log_item)
+            logs = [log_item for log_item in logs if in_time_window(log_item.get('_ts'))]
             source_name = f'Wavelog ({len(logs)} QSO)'
             
         elif source == 'adi':
@@ -1595,6 +1727,9 @@ def api_analysis_summary():
                 parser = ADIFParser()
                 records, _ = parser.parse_file(adi_path)
                 logs = [r.to_dict() for r in records]
+                for log_item in logs:
+                    log_item['_ts'] = parse_qso_ts(log_item)
+                logs = [log_item for log_item in logs if in_time_window(log_item.get('_ts'))]
             source_name = 'ADIF 文件'
             
         else:
@@ -1602,11 +1737,23 @@ def api_analysis_summary():
             conn = sqlite3.connect(get_database().db_path)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute('SELECT callsign, dxcc, freq, mode, grid FROM spot_history')
+            cursor.execute('SELECT callsign, dxcc, freq, mode, grid, _server_ts FROM spot_history')
             rows = cursor.fetchall()
             conn.close()
             
-            logs = [{'call': r['callsign'], 'dxcc': r['dxcc'], 'freq': float(r['freq']) if r['freq'] else 0, 'mode': r['mode'] or '', 'grid': r['grid'] or ''} for r in rows]
+            logs = []
+            for r in rows:
+                ts_value = float(r['_server_ts']) if r['_server_ts'] else None
+                if not in_time_window(ts_value):
+                    continue
+                logs.append({
+                    'call': r['callsign'],
+                    'dxcc': r['dxcc'],
+                    'freq': float(r['freq']) if r['freq'] else 0,
+                    'mode': r['mode'] or '',
+                    'grid': r['grid'] or '',
+                    '_ts': ts_value,
+                })
             source_name = 'Cluster 实时数据'
         
         if not logs:
@@ -1626,6 +1773,7 @@ def api_analysis_summary():
         # 完整分析
         analyzer = get_analyzer()
         analysis = analyzer.analyze_all(logs)
+        time_buckets = summarize_time_age(logs)
         
         log(f'[日志分析] 完成分析：{stats["total_qso"]} 条 QSO (源：{source_name})')
         
@@ -1633,7 +1781,13 @@ def api_analysis_summary():
             'success': True,
             'source': source_name,
             'summary': stats,
-            'analysis': analysis
+            'analysis': analysis,
+            'time_color_buckets': time_buckets,
+            'time_window': {
+                'range': range_value,
+                'start_ts': start_ts,
+                'end_ts': end_ts,
+            }
         })
         
     except Exception as e:

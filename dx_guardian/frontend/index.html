@@ -1159,6 +1159,11 @@
                     <option value="SSB">SSB</option>
                     <option value="RTTY">RTTY</option>
                 </select>
+                <select id="psk-role-filter-select" onchange="setPskRoleFilter(this.value)" style="padding:2px 6px;border-radius:3px;border:1px solid #444;background:#1a1a2e;color:#fff;font-size:11px;cursor:pointer;">
+                    <option value="ALL" selected>PSK: 全部</option>
+                    <option value="SENDER">PSK: 发送台</option>
+                    <option value="RECEIVER">PSK: 监听台</option>
+                </select>
                 <span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">显示：<span id="visible-count">0</span></span>
             </div>
             <div class="topbar-stats">

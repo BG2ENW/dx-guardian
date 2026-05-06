@@ -98,6 +98,28 @@
         
         .time-label { font-size: 12px; color: var(--text-secondary); }
         .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
+
+        .time-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .time-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .time-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            display: inline-block;
+        }
         
         @media (max-width: 768px) {
             .charts-grid { grid-template-columns: 1fr; }
@@ -116,6 +138,22 @@
                     <option value="wavelog">Wavelog OnlineLog</option>
                     <option value="adi">ADIF 文件</option>
                 </select>
+            </div>
+            <div class="control-group">
+                <label>时间范围:</label>
+                <select id="timeRange" onchange="toggleCustomRange()">
+                    <option value="15m">最近 15 分钟</option>
+                    <option value="1h">最近 1 小时</option>
+                    <option value="6h">最近 6 小时</option>
+                    <option value="24h" selected>最近 24 小时</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            <div class="control-group" id="customRange" style="display: none;">
+                <label>起始:</label>
+                <input id="startTs" type="datetime-local" style="background: var(--bg-panel); border: 1px solid rgba(48,54,61,0.5); color: var(--text-primary); padding: 8px 12px; border-radius: 6px;">
+                <label>结束:</label>
+                <input id="endTs" type="datetime-local" style="background: var(--bg-panel); border: 1px solid rgba(48,54,61,0.5); color: var(--text-primary); padding: 8px 12px; border-radius: 6px;">
             </div>
             <button id="refreshBtn" onclick="loadData()">🔄 刷新</button>
             <span id="timeLabel" class="time-label"></span>
@@ -140,7 +178,10 @@
                     <canvas id="modeChart"></canvas>
                 </div>
                 <div class="chart-panel">
-                    <h3 class="panel-title">⏰ 24 小时活动分布</h3>
+                    <h3 class="panel-title">
+                        ⏰ 时间活动分布
+                        <span class="time-legend" id="timeLegend"></span>
+                    </h3>
                     <canvas id="timeChart"></canvas>
                 </div>
             </div>
@@ -155,30 +196,75 @@
         ];
         
         let charts = {};
+
+        function toggleCustomRange() {
+            const v = document.getElementById('timeRange').value;
+            document.getElementById('customRange').style.display = v === 'custom' ? 'flex' : 'none';
+        }
+
+        function toIsoLocalValue(d) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        function initCustomRangeDefault() {
+            const end = new Date();
+            const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+            document.getElementById('startTs').value = toIsoLocalValue(start);
+            document.getElementById('endTs').value = toIsoLocalValue(end);
+        }
+
+        function renderTimeLegend(buckets) {
+            const legend = document.getElementById('timeLegend');
+            if (!buckets) {
+                legend.innerHTML = '';
+                return;
+            }
+            const order = ['fresh', 'recent', 'warm', 'stale', 'unknown'];
+            legend.innerHTML = order
+                .filter(k => buckets[k])
+                .map(k => {
+                    const b = buckets[k];
+                    return `<span class="time-legend-item"><span class="time-legend-dot" style="background:${b.color}"></span>${b.label}: ${b.count}</span>`;
+                }).join('');
+        }
         
         async function loadData() {
             const btn = document.getElementById('refreshBtn');
             const timeLabel = document.getElementById('timeLabel');
             const source = document.getElementById('source').value;
+            const timeRange = document.getElementById('timeRange').value;
             
             btn.disabled = true;
             btn.textContent = '⏳ 加载中...';
             
             try {
                 const start = Date.now();
-                const r = await fetch('/api/analysis/summary?source=' + source);
+                const params = new URLSearchParams({ source });
+                if (timeRange === 'custom') {
+                    const startTs = document.getElementById('startTs').value;
+                    const endTs = document.getElementById('endTs').value;
+                    if (startTs) params.set('start_ts', new Date(startTs).toISOString());
+                    if (endTs) params.set('end_ts', new Date(endTs).toISOString());
+                } else {
+                    params.set('range', timeRange);
+                }
+
+                const r = await fetch('/api/analysis/summary?' + params.toString());
                 const d = await r.json();
                 
                 if (!d.success) throw new Error(d.error);
                 
                 const elapsed = Date.now() - start;
-                timeLabel.textContent = `最后更新：${new Date().toLocaleTimeString()} (${elapsed}ms)`;
+                const rangeText = timeRange === 'custom' ? '自定义' : timeRange;
+                timeLabel.textContent = `最后更新：${new Date().toLocaleTimeString()} (${elapsed}ms) · 范围 ${rangeText}`;
                 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('content').style.display = 'block';
                 
                 renderStats(d.summary);
                 renderCharts(d.analysis);
+                renderTimeLegend(d.time_color_buckets);
                 
             } catch(e) {
                 document.getElementById('loading').innerHTML = '❌ 加载失败：' + e.message;
@@ -305,7 +391,11 @@
             });
         }
         
-        document.addEventListener('DOMContentLoaded', loadData);
+        document.addEventListener('DOMContentLoaded', () => {
+            initCustomRangeDefault();
+            toggleCustomRange();
+            loadData();
+        });
     </script>
 </body>
 </html>

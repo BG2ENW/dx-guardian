@@ -892,6 +892,7 @@ let mapHeightResizing = false; // 地图高度调整中
 let mapHeightPercent = 80; // 默认高度百分比（相对于视口）
 let qsoReceived = []; // 我收到的电台列表（由我上报的 spot）
 let qsoHeardMe = []; // 收到我电台的列表（其他台上报听到我）
+let pskRoleFilter = 'ALL'; // PSK 双标记筛选：ALL/SENDER/RECEIVER
 let qsoHeightResizing = false; // QSO 模块高度调整中
 let qsoHeightPercent = 25; // QSO 模块默认高度百分比
 
@@ -1465,14 +1466,14 @@ function addSpotToHistory(spotData, silent) {
     const receivedAt = spotData.receivedAt || serverTs;
 
     const cutoff = timeFilter > 0 ? now - timeFilter * 60000 : 0;
-    const visible = receivedAt >= cutoff;
+    let visible = receivedAt >= cutoff;
 
     // 波段筛选
     if (activeBandFilter && spotData.band !== activeBandFilter) {
         visible = false;
     }
 
-    let marker = null;
+    let marker = { sender: null, receiver: null };
     if (visible) {
         marker = createSpotMarker(spotData);
     }
@@ -1486,7 +1487,8 @@ function addSpotToHistory(spotData, silent) {
     while (spotHistory.length > MAX_HISTORY) {
         const entry = spotHistory.shift();
         if (entry.marker) {
-            map.removeLayer(entry.marker);
+            if (entry.marker.sender) map.removeLayer(entry.marker.sender);
+            if (entry.marker.receiver) map.removeLayer(entry.marker.receiver);
         }
     }
 
@@ -1495,7 +1497,7 @@ function addSpotToHistory(spotData, silent) {
 
 // 创建标记
 function createSpotMarker(spotData) {
-    if (!map) return null;
+    if (!map) return { sender: null, receiver: null };
 
     const mode = spotData.mode || 'UNKNOWN';
     const color = MODE_COLORS[mode] || MODE_COLORS['UNKNOWN'];
@@ -1516,7 +1518,25 @@ function createSpotMarker(spotData) {
             iconAnchor: [pulseSize / 2, pulseSize / 2]
         });
 
-        const marker = L.marker([spotData.lat, spotData.lon], {icon: icon}).addTo(map);
+        const marker = { sender: null, receiver: null };
+        const senderMarker = L.marker([spotData.lat, spotData.lon], {icon: icon}).addTo(map);
+        marker.sender = senderMarker;
+
+        if (
+            spotData.source === 'pskreporter' &&
+            spotData.receiver_lat &&
+            spotData.receiver_lon
+        ) {
+            const rxIcon = L.divIcon({
+                className: 'spot-marker-wrapper',
+                html: '<div class="spot-pin" style="--pin-color:#d29922;--pin-size:8px;">' +
+                      '<div class="spot-dot" style="width:8px;height:8px;"></div>' +
+                      '</div>',
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            });
+            marker.receiver = L.marker([spotData.receiver_lat, spotData.receiver_lon], {icon: rxIcon}).addTo(map);
+        }
 
         const gridInfo = spotData.grid ? '<br/>📍 Grid: ' + spotData.grid : '';
         const cqItuInfo = (spotData.cq || spotData.itu) ? 
@@ -1530,7 +1550,7 @@ function createSpotMarker(spotData) {
         const commentInfo = spotData.comment ? '<br/>💬 ' + spotData.comment : '';
         const precisionLabel = (spotData.precision === 'grid' || spotData.precision === 'grid_db') ? ' (精确)' : (spotData.precision === 'china_province' ? ' (省份)' : (spotData.precision === 'cty' ? ' (CTY)' : (spotData.precision === 'dxcc' ? ' (国家)' : '')));
 
-        marker.bindTooltip(
+        senderMarker.bindTooltip(
             '<div style="min-width:180px;">' +
             '<div style="font-weight:bold;font-size:14px;margin-bottom:6px;color:' + color + '">' + spotData.callsign + '</div>' +
             '<div style="font-size:12px;color:#ccc">' +
@@ -1551,10 +1571,32 @@ function createSpotMarker(spotData) {
             }
         );
 
+        if (marker.receiver) {
+            const receiverGridInfo = spotData.receiver_grid ? '<br/>📍 Grid: ' + spotData.receiver_grid : '';
+            const receiverPrecision = spotData.receiver_precision ? '<br/>🎯 精度: ' + spotData.receiver_precision : '';
+            marker.receiver.bindTooltip(
+                '<div style="min-width:180px;">' +
+                '<div style="font-weight:bold;font-size:14px;margin-bottom:6px;color:#d29922">' + (spotData.receiver || 'RX') + '</div>' +
+                '<div style="font-size:12px;color:#ccc">' +
+                '🎧 监听台' +
+                '<br/>📡 来源: PSKReporter' +
+                '<br/>🔗 发送台: ' + spotData.callsign +
+                receiverGridInfo +
+                receiverPrecision +
+                '</div></div>',
+                {
+                    className: 'spot-tooltip',
+                    direction: 'top',
+                    offset: [0, -10],
+                    opacity: 0.95
+                }
+            );
+        }
+
         return marker;
     } catch (e) {
         console.error('标记创建失败:', e);
-        return null;
+        return { sender: null, receiver: null };
     }
 }
 
@@ -1567,8 +1609,9 @@ function cleanupExpiredMarkers() {
 
     spotHistory.forEach(entry => {
         if (entry.receivedAt < cutoff && entry.marker) {
-            map.removeLayer(entry.marker);
-            entry.marker = null;
+            if (entry.marker.sender) map.removeLayer(entry.marker.sender);
+            if (entry.marker.receiver) map.removeLayer(entry.marker.receiver);
+            entry.marker = { sender: null, receiver: null };
         }
     });
 
@@ -1597,6 +1640,15 @@ function setModeFilter(mode) {
     document.querySelectorAll('#mode-filter-select').forEach(el => {
         el.value = mode;
     });
+    rerenderAllMarkers();
+}
+
+function setPskRoleFilter(role) {
+    pskRoleFilter = role || 'ALL';
+    const selectEl = document.getElementById('psk-role-filter-select');
+    if (selectEl) {
+        selectEl.value = pskRoleFilter;
+    }
     rerenderAllMarkers();
 }
 
@@ -1631,11 +1683,33 @@ function rerenderAllMarkers() {
         const modeVisible = !modeFilter || modeFilter === 'ALL' || entry.spot.mode === modeFilter;
         const visible = timeVisible && bandVisible && modeVisible;
 
-        if (visible && !entry.marker) {
+        if (visible && (!entry.marker || (!entry.marker.sender && !entry.marker.receiver))) {
             entry.marker = createSpotMarker(entry.spot);
         } else if (!visible && entry.marker) {
-            map.removeLayer(entry.marker);
-            entry.marker = null;
+            if (entry.marker.sender) map.removeLayer(entry.marker.sender);
+            if (entry.marker.receiver) map.removeLayer(entry.marker.receiver);
+            entry.marker = { sender: null, receiver: null };
+        }
+
+        if (entry.spot.source === 'pskreporter' && entry.marker) {
+            const sender = entry.marker.sender;
+            const receiver = entry.marker.receiver;
+
+            if (sender) {
+                if (pskRoleFilter === 'RECEIVER') {
+                    if (map.hasLayer(sender)) map.removeLayer(sender);
+                } else if (!map.hasLayer(sender)) {
+                    sender.addTo(map);
+                }
+            }
+
+            if (receiver) {
+                if (pskRoleFilter === 'SENDER') {
+                    if (map.hasLayer(receiver)) map.removeLayer(receiver);
+                } else if (!map.hasLayer(receiver)) {
+                    receiver.addTo(map);
+                }
+            }
         }
     });
 
@@ -1644,7 +1718,7 @@ function rerenderAllMarkers() {
 
 // 更新可见计数
 function updateVisibleCount() {
-    const visibleCount = spotHistory.filter(e => e.marker !== null).length;
+    const visibleCount = spotHistory.filter(e => e.marker && (e.marker.sender || e.marker.receiver)).length;
     const countEl = document.getElementById('visible-count');
     if (countEl) countEl.textContent = visibleCount;
 }
