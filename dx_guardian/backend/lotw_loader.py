@@ -10,7 +10,7 @@ from typing import Set, Dict, Optional
 class LOTWDatabase:
     """LoTW 用户数据库"""
     
-    def __init__(self, csv_file: str = '/workspace/lotw-user-activity.csv'):
+    def __init__(self, csv_file: str = '/home/jacky/.openclaw/workspace/lotw-user-activity.csv'):
         """初始化并加载 LoTW 数据库"""
         self.users = set()
         self.activity = {}

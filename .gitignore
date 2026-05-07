@@ -2,3 +2,13 @@ __pycache__/
 *.pyc
 .env
 dx_guardian/docs_archive/
+
+# Wavelog 集成相关
+wavelog_config.json
+settings/
+*.log
+app.log
+
+# 本地开发文件
+scripts/local_*
+*.bak

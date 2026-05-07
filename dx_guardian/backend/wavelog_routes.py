@@ -18,10 +18,8 @@ def register_wavelog_routes(app, deps):
             import urllib.request
             import json
 
-            url = f'{wavelog_url}/index.php/api/station_info'
-            payload = json.dumps({'key': wavelog_api_key}).encode('utf-8')
-            req = urllib.request.Request(url, data=payload, method='POST')
-            req.add_header('Content-Type', 'application/json')
+            url = f'{wavelog_url}/api/station_info/{wavelog_api_key}'
+            req = urllib.request.Request(url, method='GET')
             req.add_header('Accept', 'application/json')
 
             with urllib.request.urlopen(req, timeout=10) as resp:

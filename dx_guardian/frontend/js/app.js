@@ -3,6 +3,7 @@
  */
 let map = null;
 let markers = [];
+let receivedMeLayer = L.layerGroup();
 let socket = null;
 let totalSpots = 0;
 let bandCounts = {
@@ -782,8 +783,86 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ========== 传播预测面板 ==========
+
+// Fetch stations that received my signal
+async function fetchReceivedMe() {
+    try {
+        // 从/api/myspots获取"they spotted me"数据
+        const url = `/api/myspots?call=${MY_STATION.callsign}&age_hours=6`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        const stations = data.they_spotted_me || [];
+        
+        receivedMeLayer.clearLayers();
+        
+        if (stations && stations.length > 0) {
+            console.log(`[RX Me] ${stations.length} stations`);
+            
+            for (const station of stations) {
+                if (!station.grid || station.grid.length < 4) continue;
+                
+                try {
+                    // 直接使用lat/lon，如果没有就用grid转换
+                    let lat = station.lat || station.receiver_lat;
+                    let lon = station.lon || station.receiver_lon;
+                    
+                    if (!lat || !lon) {
+                        if (station.grid) {
+                            const coords = getGridCoordinates(station.grid);
+                            if (coords) { lat = coords.lat; lon = coords.lon; }
+                        }
+                    }
+                    
+                    if (!lat || !lon) continue;
+                    
+                    const snrLabel = station.snr ? `${station.snr}dB` : '';
+                    
+                    // Color by SNR: red <=-11, orange -10~-1, green >=0
+                    let snrColor = '#4CAF50', snrBg = '#4CAF50', snrBorder = '#81C784';
+                    if (station.snr !== undefined && station.snr !== null && station.snr !== '') {
+                        const snr = parseInt(station.snr);
+                        if (snr <= -11) { snrColor = '#f44336'; snrBg = '#d32f2f'; snrBorder = '#ef5350'; }
+                        else if (snr <= -1) { snrColor = '#ff9800'; snrBg = '#f57c00'; snrBorder = '#ffb74d'; }
+                    }
+                    
+                    const popupContent = `<div style="text-align:center">
+                        <div style="font-weight:bold;font-size:16px;color:${snrColor}">${station.reporter || station.callsign}</div>
+                        <div style="color:#aaa;font-size:12px">${station.freq.toFixed(2)} MHz · ${station.mode}</div>
+                        <div style="color:${snrColor};font-size:14px;margin-top:4px">${snrLabel ? '📶 ' + snrLabel : ''}</div>
+                    </div>`;
+                    
+                    const icon = L.divIcon({
+                        className: 'rx-me-marker',
+                        html: `<div style="
+                            background:linear-gradient(135deg,${snrBg},${snrColor});
+                            color:#fff;padding:4px 8px;border-radius:12px;font-size:12px;font-weight:bold;
+                            white-space:nowrap;box-shadow:0 2px 8px ${snrColor}66;border:2px solid ${snrBorder};
+                        ">${station.reporter || station.callsign} ${snrLabel}</div>`,
+                        iconSize: [120, 24], iconAnchor: [60, 12]
+                    });
+                    
+                    L.marker([lat, lon], {icon: icon})
+                        .bindPopup(popupContent).addTo(receivedMeLayer);
+                } catch (e) { console.error('Grid error:', e); }
+            }
+            
+            if (map && !map.hasLayer(receivedMeLayer)) receivedMeLayer.addTo(map);
+        }
+    } catch (e) { console.error('[RX Me] Error:', e); }
+}
+
+setInterval(fetchReceivedMe, 30000);
+setTimeout(fetchReceivedMe, 3000);
+
 function initMap() {
     map = L.map('dx-map').setView([MY_STATION.lat, MY_STATION.lon], 3);
+    
+    // 初始化其他图层
+    // gridOverlayLayer already initialized above
+    graylineLayer = L.layerGroup();
+    
+    // 默认显示收到我呼叫的标签
+    receivedMeLayer.addTo(map);
     
     // 设置控件容器 z-index，确保按钮始终可见
     setTimeout(() => {
@@ -825,7 +904,7 @@ function initMap() {
     });
     
     // 初始化网格图层（默认隐藏）
-    gridOverlayLayer = L.layerGroup();
+    // gridOverlayLayer already initialized above
     
     // 监听地图移动和缩放，动态更新网格
     map.on('moveend', updateGridOnMove);
@@ -1227,6 +1306,27 @@ function renderGridOverlay() {
     lines.forEach(line => gridOverlayLayer.addLayer(line));
     gridOverlayLayer.addLayer(centerMarker);
     gridOverlayLayer.addTo(map);
+}
+
+// Grid转坐标
+function getGridCoordinates(grid) {
+    if (!grid || grid.length < 4) return null;
+    
+    try {
+        const g = grid.toUpperCase();
+        const lon = (g.charCodeAt(1) - 65) * 20 - 180 + parseInt(g.charAt(3) || 0) * 2 + 1;
+        const lat = (g.charCodeAt(0) - 65) * 10 - 90 + parseInt(g.charAt(2) || 0) * 1 + 0.5;
+        
+        // 如果有更精确的4字符grid
+        if (g.length >= 6) {
+            const subLon = (g.charCodeAt(4) - 97) * 5 / 60;
+            const subLat = (g.charCodeAt(3) - 97) * 2.5 / 60;
+            return { lat: lat + subLat, lon: lon + subLon };
+        }
+        return { lat, lon };
+    } catch (e) {
+        return null;
+    }
 }
 
 function calculateMaidenheadGrid(lat, lon) {

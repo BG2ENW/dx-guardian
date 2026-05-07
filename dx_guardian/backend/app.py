@@ -46,6 +46,11 @@ from score_routes import register_score_routes
 from scorer import OpportunityScorer
 from scorer_v2 import OpportunityScorerV2
 from opportunities_routes import register_routes as register_opportunities_routes
+from lotw_loader import get_lotw_database
+from wavelog_adapter import (
+    get_user_by_callsign, get_user_stations, get_user_confirmed_dxcc,
+    get_themes, get_theme_by_id, test_connection as test_wavelog_conn
+)
 
 # ========== 预警引擎（V2增强版）===========
 # 旧 AlertEngine 已迁移到 alert_engine_v2.py，使用 AlertEngineV2
@@ -212,7 +217,7 @@ def init_scorer():
     if scorer is None:
         scorer = OpportunityScorerV2()  # V2 增强版
         try:
-            sc = load_station_config()
+            sc = load_station_config(MY_CALL)
             scorer.update_station(
                 sc.get('lat', 45.8),
                 sc.get('lon', 126.5),
@@ -249,7 +254,8 @@ cluster_should_run = False  # Cluster是否应该运行（备用模式）
 # 后端 Spot 缓存（持续积累，不受前端连接影响）
 SPOT_HISTORY_MAX = 100000  # 10 万条缓存
 SPOT_HISTORY_HOURS = 168  # 保留 7 天 (168 小时)
-spot_history = []  # 所有处理过的 Spot（含时间戳）- 内存缓存（快速访问）
+spot_history = []
+psk_cache = {}  # PSK Reporter 查询缓存  # 所有处理过的 Spot（含时间戳）- 内存缓存（快速访问）
 
 # SQLite 数据库（持久化）
 db = None
@@ -261,9 +267,10 @@ def init_database():
     log(f"[数据库] 初始化完成，路径：{db.db_path}")
 
 def init_cleanup_scheduler():
-    """初始化数据库清理定时任务"""
+    """初始化定时任务：数据库清理 + LoTW 更新"""
     scheduler = BackgroundScheduler()
     
+    # 每日凌晨 2 点清理 7 天前的数据
     @scheduler.scheduled_job('cron', hour=2, minute=0, id='daily_cleanup')
     def daily_cleanup():
         """每日凌晨 2 点清理 7 天前的数据"""
@@ -274,6 +281,30 @@ def init_cleanup_scheduler():
             log(f"[Cleanup] 清理完成：删除 {total_deleted} 条记录 (时间:{deleted_time}, 数量:{deleted_count})")
         else:
             log("[Cleanup] 无需清理")
+    
+    # 每周日凌晨 3 点更新 LoTW 数据库
+    @scheduler.scheduled_job('cron', day_of_week='sun', hour=3, minute=0, id='lotw_update')
+    def weekly_lotw_update():
+        """每周日更新 LoTW 数据库"""
+        import subprocess
+        import sys
+        script_path = BASE_DIR.parent / 'scripts' / 'update_lotw.py'
+        if script_path.exists():
+            try:
+                result = subprocess.run(
+                    [sys.executable, str(script_path)],
+                    capture_output=True,
+                    text=True,
+                    timeout=120
+                )
+                if result.returncode == 0:
+                    log("[LoTW] 数据库更新成功")
+                else:
+                    log(f"[LoTW] 更新失败：{result.stderr}")
+            except Exception as e:
+                log(f"[LoTW] 更新异常：{e}")
+        else:
+            log("[LoTW] 更新脚本不存在")
     
     # 立即执行一次清理（启动时）
     log("[Cleanup] 启动时执行首次清理...")
@@ -516,6 +547,171 @@ def health():
         'history_count': len(spot_history)
     })
 
+# ========== LoTW 验证 API ==========
+@app.route('/api/lotw/status')
+def lotw_status():
+    """获取 LoTW 数据库状态"""
+    lotw = get_lotw_database()
+    csv_file = '/workspace/lotw-user-activity.csv'
+    import os
+    file_exists = os.path.exists(csv_file)
+    file_size = os.path.getsize(csv_file) if file_exists else 0
+    
+    return jsonify({
+        'ok': True,
+        'user_count': lotw.count(),
+        'file_exists': file_exists,
+        'file_size': file_size,
+        'last_update': None  # 可扩展为读取文件修改时间
+    })
+
+@app.route('/api/lotw/refresh', methods=['POST'])
+def lotw_refresh():
+    """手动刷新 LoTW 数据库"""
+    import subprocess
+    import sys
+    
+    script_path = BASE_DIR.parent / 'scripts' / 'update_lotw.py'
+    
+    if not script_path.exists():
+        return jsonify({
+            'ok': False,
+            'error': '更新脚本不存在'
+        }), 404
+    
+    try:
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        
+        if result.returncode == 0:
+            # 重新加载 LoTW 数据库
+            global _lotw_instance
+            _lotw_instance = None  # 清空缓存，强制重新加载
+            lotw = get_lotw_database()
+            
+            return jsonify({
+                'ok': True,
+                'message': 'LoTW 数据库更新成功',
+                'user_count': lotw.count()
+            })
+        else:
+            return jsonify({
+                'ok': False,
+                'error': '更新失败',
+                'detail': result.stderr
+            }), 500
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            'ok': False,
+            'error': '更新超时'
+        }), 504
+    except Exception as e:
+        return jsonify({
+            'ok': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/lotw/verify/<callsign>')
+def lotw_verify(callsign):
+    """验证单个呼号是否为 LoTW 活跃用户"""
+    lotw = get_lotw_database()
+    is_active = lotw.is_active(callsign)
+    activity = lotw.get_activity(callsign) if is_active else None
+    
+    return jsonify({
+        'ok': True,
+        'callsign': callsign.upper(),
+        'lotw_verified': is_active,
+        'activity': activity
+    })
+
+# ========== Wavelog 适配 API ==========
+@app.route('/api/wavelog/status')
+def wavelog_status():
+    """获取 Wavelog 数据库连接状态"""
+    connected = test_wavelog_conn()
+    return jsonify({
+        'ok': True,
+        'connected': connected,
+        'server': '39.103.65.85:3306'
+    })
+
+@app.route('/api/wavelog/user/<callsign>')
+def wavelog_user(callsign):
+    """获取 Wavelog 用户信息"""
+    user = get_user_by_callsign(callsign)
+    if not user:
+        return jsonify({
+            'ok': False,
+            'error': '用户不存在'
+        }), 404
+    
+    # 获取电台配置
+    stations = get_user_stations(user['user_id'])
+    
+    return jsonify({
+        'ok': True,
+        'user': {
+            'user_id': user['user_id'],
+            'callsign': user['user_callsign'],
+            '_locator': user['user_locator'],
+            'name': f"{user.get('user_firstname', '')} {user.get('user_lastname', '')}".strip(),
+            'email': user.get('user_email', ''),
+            'timezone': user.get('user_timezone', 0),
+            'stylesheet': user.get('user_stylesheet', '')
+        },
+        'stations': stations,
+        'station_count': len(stations)
+    })
+
+@app.route('/api/wavelog/themes')
+def wavelog_themes():
+    """获取 Wavelog 主题列表"""
+    themes = get_themes()
+    return jsonify({
+        'ok': True,
+        'themes': themes,
+        'count': len(themes)
+    })
+
+@app.route('/api/wavelog/theme/<int:theme_id>')
+def wavelog_theme(theme_id):
+    """获取 Wavelog 主题详情"""
+    theme = get_theme_by_id(theme_id)
+    if not theme:
+        return jsonify({
+            'ok': False,
+            'error': '主题不存在'
+        }), 404
+    
+    return jsonify({
+        'ok': True,
+        'theme': theme
+    })
+
+@app.route('/api/wavelog/confirmed-dxcc/<callsign>')
+def wavelog_confirmed_dxcc(callsign):
+    """获取用户已确认的 DXCC 列表"""
+    user = get_user_by_callsign(callsign)
+    if not user:
+        return jsonify({
+            'ok': False,
+            'error': '用户不存在'
+        }), 404
+    
+    confirmed = get_user_confirmed_dxcc(user['user_id'])
+    return jsonify({
+        'ok': True,
+        'callsign': callsign.upper(),
+        'confirmed_dxcc': confirmed,
+        'count': len(confirmed)
+    })
+
 @app.route('/api/history')
 def api_history():
     """返回后端缓存的所有 Spot 历史（前端打开页面时加载）"""
@@ -550,6 +746,19 @@ def api_myspots():
     callsign = request.args.get('call', '').upper().strip()
     if not callsign:
         return jsonify({'error': 'callsign required'}), 400
+    
+    # 缓存检查：5分钟内不重复查询PSK Reporter
+    cache_key = f"psk_cache_{callsign}"
+    import time
+    if cache_key in psk_cache and time.time() - psk_cache[cache_key]['time'] < 300:
+        return jsonify({
+            'callsign': callsign,
+            'i_spotted': psk_cache[cache_key]['i_spotted'],
+            'they_spotted_me': psk_cache[cache_key]['they_spotted_me'],
+            'total_history': len(spot_history),
+            'from_db': False,
+            'cached': True
+        })
     
     # 获取 age 筛选参数（小时）
     age_hours = request.args.get('age_hours', type=int)  # 例：6 表示最近 6 小时
@@ -1523,7 +1732,7 @@ def api_voacap_best_bands():
         from voacap_predictor import VOACAPPredictor
 
         # 使用我的台站位置
-        station_cfg = load_station_config()
+        station_cfg = load_station_config(MY_CALL)
         my_lat = station_cfg.get('lat', 45.8)
         my_lon = station_cfg.get('lon', 126.5)
 
@@ -1588,7 +1797,7 @@ def api_band_opening():
     try:
         from band_opening import BandOpeningPredictor
         predictor = BandOpeningPredictor()
-        station_cfg = load_station_config()
+        station_cfg = load_station_config(MY_CALL)
         forecast = predictor.predict_24h(
             sfi=SOLAR_DATA.get('sfi', 100),
             k_index=SOLAR_DATA.get('k', 2),
@@ -1945,6 +2154,73 @@ def api_analysis_modes():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
+# ========== 新API: 谁收到了我的信号 ==========
+@app.route("/api/received-me", methods=["GET"])
+def api_received_me():
+    """返回收到了用户呼叫的电台列表"""
+    callsign = request.args.get("call", "").upper().strip()
+    if not callsign:
+        return jsonify({"error": "callsign required"}), 400
+    
+    results = []
+    
+    # 直接查询PSK Reporter（谁接收到了我的信号）
+    try:
+        import urllib.request
+        import xml.etree.ElementTree as ET
+        import time
+        
+        psk_url = (f"https://retrieve.pskreporter.info/query?flowStartSeconds=-3600"
+                   f"&senderCallsign={callsign}"
+                   f"&noactive=1&rptlimit=50"
+                   f"&appcontact=bg2enw@163.com")
+        
+        req = urllib.request.Request(psk_url, headers={"User-Agent": "DXGuardian/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            psk_data = resp.read().decode("utf-8", errors="ignore")
+        
+        if psk_data.strip().startswith("<?xml") or psk_data.strip().startswith("<"):
+            root = ET.fromstring(psk_data)
+            reports = root.findall(".//receptionReport")
+            
+            for r in reports:
+                try:
+                    receiver = r.get("receiverCallsign", "").strip().upper()
+                    if not receiver:
+                        continue
+                    
+                    freq_hz = int(r.get("frequency", "0"))
+                    freq_mhz = freq_hz / 1e6
+                    mode = r.get("mode", "FT8")
+                    snr = r.get("sNR", "")
+                    grid = r.get("receiverLocator", "")
+                    dxcc = r.get("receiverDXCC", "")
+                    flow_time = int(r.get("flowStartSeconds", 0))
+                    
+                    age = int(time.time() - flow_time)
+                    
+                    results.append({
+                        "callsign": receiver,
+                        "freq": freq_mhz,
+                        "mode": mode,
+                        "snr": snr,
+                        "grid": grid,
+                        "dxcc": dxcc,
+                        "age": age,
+                        "age_formatted": f"{age}s" if age < 60 else f"{age//60}m"
+                    })
+                except:
+                    continue
+            
+            if reports:
+                log(f"[ReceivedMe] 获取{len(reports)}条收到{callsign}呼叫的电台")
+    except Exception as e:
+        log(f"[ReceivedMe] 查询失败: {e}")
+    
+    return jsonify({"stations": results})
 
 
 if __name__ == '__main__':

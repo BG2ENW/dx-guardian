@@ -8,6 +8,34 @@
     <meta http-equiv="Expires" content="0">
     <title>DX Guardian - 实时 DX Spot 监控</title>
     <link rel="manifest" href="/manifest.json">
+    <script>
+    // 动态加载 Wavelog 主题
+    async function loadWavelogTheme() {
+        try {
+            const resp = await fetch("/api/wavelog/themes");
+            const data = await resp.json();
+            if (data.ok && data.themes && data.themes.length > 0) {
+                const darkTheme = data.themes.find(t => t.foldername === "darkly") || data.themes[0];
+                if (darkTheme) {
+                    const link = document.createElement("link");
+                    link.rel = "stylesheet";
+                    link.href = "/assets/css/" + darkTheme.foldername + "/bootstrap.min.css";
+                    document.head.appendChild(link);
+                    
+                    // 适配暗色主题
+                    document.documentElement.style.setProperty("--bg-primary", "#16213e");
+                    document.documentElement.style.setProperty("--bg-secondary", "#1a1a2e");
+                    document.documentElement.style.setProperty("--bg-tertiary", "#0f0f23");
+                    document.documentElement.style.setProperty("--bg-card", "#1a1a2e");
+                    document.documentElement.style.setProperty("--text-primary", "#e0e0e0");
+                }
+            }
+        } catch(e) {
+            console.log("加载 Wavelog 主题失败:", e);
+        }
+    }
+    loadWavelogTheme();
+    </script>
     <meta name="theme-color" content="#e94560">
     <link rel="stylesheet" href="css/leaflet.css?v=1.6"/>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1137,6 +1165,31 @@
     </style>
 </head>
 <body>
+    <!-- Wavelog Navigation Bar -->
+    <div id="wavelog-header"></div>
+    <script>
+    // 动态加载 Wavelog 导航栏
+    async function loadWavelogHeader() {
+        try {
+            // 加载 Wavelog 登录状态判断页面
+            const resp = await fetch('/user/login');
+            const html = await resp.text();
+            
+            // 提取 session 判断逻辑
+            // 如果未登录，显示提示
+            // 如果已登录，加载导航栏
+            const headerResp = await fetch('/interface_assets/header');
+            const headerHtml = await headerResp.text();
+            document.getElementById('wavelog-header').innerHTML = headerHtml;
+            
+            // 隐藏原来的主体内容，显示预警系统
+            document.getElementById('app').style.marginTop = '0';
+        } catch(e) {
+            console.log('加载 Wavelog 导航栏失败:', e);
+        }
+    }
+    loadWavelogHeader();
+    </script>
     <!-- Top Bar -->
     <div class="topbar">
         <div class="topbar-left">
