@@ -44,6 +44,7 @@ from station_routes import register_station_routes, load_station_config
 from log_routes import register_log_routes
 from score_routes import register_score_routes
 from scorer import OpportunityScorer
+from scorer_v2 import OpportunityScorerV2
 from opportunities_routes import register_routes as register_opportunities_routes
 
 # ========== 预警引擎（V2增强版）===========
@@ -209,7 +210,7 @@ def init_scorer():
     """延迟初始化评分器（依赖 load_station_config）"""
     global scorer
     if scorer is None:
-        scorer = OpportunityScorer()
+        scorer = OpportunityScorerV2()  # V2 增强版
         try:
             sc = load_station_config()
             scorer.update_station(
@@ -217,7 +218,7 @@ def init_scorer():
                 sc.get('lon', 126.5),
                 ['FT8', 'CW', 'SSB']
             )
-            log('[评分引擎] 初始化成功')
+            log('[评分引擎 V2] 初始化成功')
         except Exception as e:
             log(f'[评分引擎] 初始化失败: {e}')
 
