@@ -41,6 +41,7 @@ let heatLayer = null;
 let showHeatmap = false;
 let gridOverlayLayer = null;
 let showGridOverlay = false;
+let pskLinks = []; // PSK 发送台→监听台连线
 
 // === 台站配置管理 ===
 async function loadStationConfig() {
@@ -1489,6 +1490,7 @@ function addSpotToHistory(spotData, silent) {
         if (entry.marker) {
             if (entry.marker.sender) map.removeLayer(entry.marker.sender);
             if (entry.marker.receiver) map.removeLayer(entry.marker.receiver);
+            if (entry.marker.link) map.removeLayer(entry.marker.link);
         }
     }
 
@@ -1518,7 +1520,7 @@ function createSpotMarker(spotData) {
             iconAnchor: [pulseSize / 2, pulseSize / 2]
         });
 
-        const marker = { sender: null, receiver: null };
+        const marker = { sender: null, receiver: null, link: null };
         const senderMarker = L.marker([spotData.lat, spotData.lon], {icon: icon}).addTo(map);
         marker.sender = senderMarker;
 
@@ -1535,7 +1537,21 @@ function createSpotMarker(spotData) {
                 iconSize: [12, 12],
                 iconAnchor: [6, 6]
             });
-            marker.receiver = L.marker([spotData.receiver_lat, spotData.receiver_lon], {icon: rxIcon}).addTo(map);
+            const receiverMarker = L.marker([spotData.receiver_lat, spotData.receiver_lon], {icon: rxIcon}).addTo(map);
+            marker.receiver = receiverMarker;
+            
+            // 创建发送台→监听台的连线（低透明度金色虚线）
+            const link = L.polyline(
+                [[spotData.lat, spotData.lon], [spotData.receiver_lat, spotData.receiver_lon]],
+                {
+                    color: '#d29922',
+                    weight: 1.5,
+                    opacity: 0.4,
+                    dashArray: '5, 10',
+                    lineCap: 'round'
+                }
+            ).addTo(map);
+            marker.link = link;
         }
 
         const gridInfo = spotData.grid ? '<br/>📍 Grid: ' + spotData.grid : '';
@@ -1611,7 +1627,8 @@ function cleanupExpiredMarkers() {
         if (entry.receivedAt < cutoff && entry.marker) {
             if (entry.marker.sender) map.removeLayer(entry.marker.sender);
             if (entry.marker.receiver) map.removeLayer(entry.marker.receiver);
-            entry.marker = { sender: null, receiver: null };
+            if (entry.marker.link) map.removeLayer(entry.marker.link);
+            entry.marker = { sender: null, receiver: null, link: null };
         }
     });
 
@@ -1688,12 +1705,14 @@ function rerenderAllMarkers() {
         } else if (!visible && entry.marker) {
             if (entry.marker.sender) map.removeLayer(entry.marker.sender);
             if (entry.marker.receiver) map.removeLayer(entry.marker.receiver);
-            entry.marker = { sender: null, receiver: null };
+            if (entry.marker.link) map.removeLayer(entry.marker.link);
+            entry.marker = { sender: null, receiver: null, link: null };
         }
 
         if (entry.spot.source === 'pskreporter' && entry.marker) {
             const sender = entry.marker.sender;
             const receiver = entry.marker.receiver;
+            const link = entry.marker.link;
 
             if (sender) {
                 if (pskRoleFilter === 'RECEIVER') {
@@ -1708,6 +1727,16 @@ function rerenderAllMarkers() {
                     if (map.hasLayer(receiver)) map.removeLayer(receiver);
                 } else if (!map.hasLayer(receiver)) {
                     receiver.addTo(map);
+                }
+            }
+            
+            // 连线跟随接收台可见性
+            if (link) {
+                const linkVisible = (pskRoleFilter !== 'SENDER') && sender && receiver;
+                if (linkVisible && !map.hasLayer(link)) {
+                    link.addTo(map);
+                } else if (!linkVisible && map.hasLayer(link)) {
+                    map.removeLayer(link);
                 }
             }
         }
