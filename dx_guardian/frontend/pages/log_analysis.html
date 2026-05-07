@@ -130,6 +130,13 @@
     <div class="container">
         <h1 class="page-title">📊 日志统计分析</h1>
         
+        <div id="warningBox" style="display:none;background:rgba(210,153,34,0.15);border:1px solid #d29922;border-radius:6px;padding:12px;margin-bottom:20px;">
+            <div style="color:#d29922;font-size:14px;">
+                <span style="font-weight:bold;">⚠️ 提示:</span>
+                <span id="warningText" style="margin-left:8px;"></span>
+            </div>
+        </div>
+        
         <div class="controls">
             <div class="control-group">
                 <label>数据源:</label>
@@ -253,11 +260,20 @@
                 const r = await fetch('/api/analysis/summary?' + params.toString());
                 const d = await r.json();
                 
-                if (!d.success) throw new Error(d.error);
+                if (!d.success) throw new Error(d.error || '未知错误');
                 
                 const elapsed = Date.now() - start;
                 const rangeText = timeRange === 'custom' ? '自定义' : timeRange;
                 timeLabel.textContent = `最后更新：${new Date().toLocaleTimeString()} (${elapsed}ms) · 范围 ${rangeText}`;
+                
+                // 显示警告消息（如果有）
+                const warningBox = document.getElementById('warningBox');
+                if (d.warning) {
+                    document.getElementById('warningText').textContent = d.warning;
+                    warningBox.style.display = 'block';
+                } else {
+                    warningBox.style.display = 'none';
+                }
                 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('content').style.display = 'block';

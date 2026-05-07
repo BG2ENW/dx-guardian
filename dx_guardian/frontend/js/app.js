@@ -365,7 +365,9 @@ async function updateQsoStats() {
             time: s.time || s.timestamp,
             band: s.band || freqToBand(s.freq),
             comments: s.comment || '',
-            location: s.location || ''
+            location: s.location || '',
+            time_color_bucket: s.time_color_bucket || null,
+            _server_ts: s._server_ts
         }));
         
         const qsoHeardMe = theySpottedMe.map(s => ({
@@ -377,7 +379,9 @@ async function updateQsoStats() {
             signal: extractRST(s.comment || '') || extractSignal(s.comment || ''),
             time: s.time || s.timestamp,
             band: s.band || freqToBand(s.freq),
-            comments: s.comment || ''
+            comments: s.comment || '',
+            time_color_bucket: s.time_color_bucket || null,
+            _server_ts: s._server_ts
         }));
         
         // 按时间排序，最新的在前
@@ -402,22 +406,26 @@ function renderQsoStatsLocal(qsoReceived, qsoHeardMe) {
     if (qsoReceived.length === 0) {
         receivedList.innerHTML = '<div style="color:#888;">暂无数据</div>';
     } else {
-        receivedList.innerHTML = qsoReceived.slice(0, 20).map(q => `
-            <div class="qso-item">
-                <div class="qso-row-main">
-                    <span class="qso-callsign">${q.call}</span>
-                    <span class="qso-country">${q.country || ''}</span>
-                </div>
-                <div class="qso-row-meta">
-                    <span class="qso-freq">${(typeof q.freq === 'number' ? q.freq.toFixed(3) : q.freq) || '--'}</span>
-                    <span class="qso-mode">${q.mode || '--'}</span>
-                    <span class="qso-grid">${q.grid || ''}</span>
-                    <span class="qso-time">${formatQsoTime(q.time)}</span>
-                    ${q.age_formatted ? `<span class="qso-age">${q.age_formatted} ago</span>` : ''}
-                </div>
-                ${q.comments ? `<div class="qso-comments">${q.comments}</div>` : ''}
-            </div>
-        `).join('');
+        receivedList.innerHTML = qsoReceived.slice(0, 20).map(q => {
+    const timeBadge = q.time_color_bucket ? 
+        `<span class="qso-time-badge" style="background:${q.time_color_bucket.bg};color:${q.time_color_bucket.color};padding:1px 4px;border-radius:3px;font-size:10px;margin-left:4px;">${q.time_color_bucket.label}</span>` : '';
+    return `
+    <div class="qso-item">
+        <div class="qso-row-main">
+            <span class="qso-callsign">${q.call}${timeBadge}</span>
+            <span class="qso-country">${q.country || ''}</span>
+        </div>
+        <div class="qso-row-meta">
+            <span class="qso-freq">${(typeof q.freq === 'number' ? q.freq.toFixed(3) : q.freq) || '--'}</span>
+            <span class="qso-mode">${q.mode || '--'}</span>
+            <span class="qso-grid">${q.grid || ''}</span>
+            <span class="qso-time">${formatQsoTime(q.time)}</span>
+            ${q.age_formatted ? `<span class="qso-age">${q.age_formatted} ago</span>` : ''}
+        </div>
+        ${q.comments ? `<div class="qso-comments">${q.comments}</div>` : ''}
+    </div>
+    `;
+}).join('');
     }
     
     // 更新收到我电台列表（右侧：别人上报我的）
@@ -425,22 +433,26 @@ function renderQsoStatsLocal(qsoReceived, qsoHeardMe) {
     if (qsoHeardMe.length === 0) {
         heardList.innerHTML = '<div style="color:#888;">暂无数据</div>';
     } else {
-        heardList.innerHTML = qsoHeardMe.slice(0, 20).map(q => `
-            <div class="qso-item">
-                <div class="qso-row-main">
-                    <span class="qso-callsign">${q.call}</span>
-                    <span class="qso-spotter" title="Spotter">${q.country || ''}</span>
-                </div>
-                <div class="qso-row-meta">
-                    <span class="qso-freq">${(typeof q.freq === 'number' ? q.freq.toFixed(3) : q.freq) || '--'}</span>
-                    <span class="qso-mode">${q.mode || '--'}</span>
-                    <span class="qso-grid">${q.grid || ''}</span>
-                    <span class="qso-time">${formatQsoTime(q.time)}</span>
-                    ${q.age_formatted ? `<span class="qso-age">${q.age_formatted} ago</span>` : ''}
-                </div>
-                ${q.comments ? `<div class="qso-comments">${q.comments}</div>` : ''}
-            </div>
-        `).join('');
+        heardList.innerHTML = qsoHeardMe.slice(0, 20).map(q => {
+    const timeBadge = q.time_color_bucket ? 
+        `<span class="qso-time-badge" style="background:${q.time_color_bucket.bg};color:${q.time_color_bucket.color};padding:1px 4px;border-radius:3px;font-size:10px;margin-left:4px;">${q.time_color_bucket.label}</span>` : '';
+    return `
+    <div class="qso-item">
+        <div class="qso-row-main">
+            <span class="qso-callsign">${q.call}${timeBadge}</span>
+            <span class="qso-spotter" title="Spotter">${q.country || ''}</span>
+        </div>
+        <div class="qso-row-meta">
+            <span class="qso-freq">${(typeof q.freq === 'number' ? q.freq.toFixed(3) : q.freq) || '--'}</span>
+            <span class="qso-mode">${q.mode || '--'}</span>
+            <span class="qso-grid">${q.grid || ''}</span>
+            <span class="qso-time">${formatQsoTime(q.time)}</span>
+            ${q.age_formatted ? `<span class="qso-age">${q.age_formatted} ago</span>` : ''}
+        </div>
+        ${q.comments ? `<div class="qso-comments">${q.comments}</div>` : ''}
+    </div>
+    `;
+}).join('');
     }
 }
 
@@ -1568,7 +1580,10 @@ function createSpotMarker(spotData) {
 
         senderMarker.bindTooltip(
             '<div style="min-width:180px;">' +
-            '<div style="font-weight:bold;font-size:14px;margin-bottom:6px;color:' + color + '">' + spotData.callsign + '</div>' +
+            '<div style="font-weight:bold;font-size:14px;margin-bottom:6px;color:' + color + '">' + spotData.callsign + 
+            (spotData.lotw_verified ? '<span style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:2px 6px;border-radius:3px;font-size:10px;margin-left:6px;">✓ LoTW</span>' : '') +
+            (spotData.time_color_bucket ? `<span style="background:${spotData.time_color_bucket.bg};color:${spotData.time_color_bucket.color};padding:2px 6px;border-radius:3px;font-size:10px;margin-left:4px;">${spotData.time_color_bucket.label}</span>` : '') +
+            '</div>' +
             '<div style="font-size:12px;color:#ccc">' +
             '📻 ' + (typeof spotData.freq === 'number' ? spotData.freq.toFixed(3) : spotData.freq) + ' MHz' +
             '<br/>📡 ' + spotData.band + ' · ' + spotData.mode + precisionLabel +

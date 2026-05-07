@@ -560,7 +560,6 @@ def api_myspots():
             i_spotted, they_spotted_me = db.get_related_spots(callsign, limit=500, hours=query_hours)
             total = db.count_total()
             
-            # 计算 age 并添加字段
             import time
             def calc_age(ts): return int(time.time() - ts)
             def fmt_age(secs):
@@ -568,16 +567,32 @@ def api_myspots():
                 elif secs < 3600: return f"{secs // 60}m"
                 elif secs < 86400: return f"{secs // 3600}h"
                 else: return f"{secs // 86400}d"
+            def get_time_color_bucket(ts):
+                if ts is None:
+                    return {'bucket': 'unknown', 'label': '未知', 'color': '#8b949e', 'bg': 'rgba(139,148,158,0.15)'}
+                age_min = (time.time() - ts) / 60.0
+                if age_min <= 5:
+                    return {'bucket': 'fresh', 'label': '0-5m', 'color': '#3fb950', 'bg': 'rgba(63,185,80,0.15)'}
+                elif age_min <= 30:
+                    return {'bucket': 'recent', 'label': '5-30m', 'color': '#58a6ff', 'bg': 'rgba(88,166,255,0.15)'}
+                elif age_min <= 120:
+                    return {'bucket': 'warm', 'label': '30-120m', 'color': '#d29922', 'bg': 'rgba(210,153,34,0.15)'}
+                else:
+                    return {'bucket': 'stale', 'label': '120m+', 'color': '#e94560', 'bg': 'rgba(233,69,96,0.15)'}
             
             for spot in i_spotted:
-                age = calc_age(spot.get('_server_ts', time.time()))
+                ts = spot.get('_server_ts')
+                age = calc_age(ts) if ts else 0
                 spot['age'] = age
                 spot['age_formatted'] = fmt_age(age)
+                spot['time_color_bucket'] = get_time_color_bucket(ts)
             
             for spot in they_spotted_me:
-                age = calc_age(spot.get('_server_ts', time.time()))
+                ts = spot.get('_server_ts')
+                age = calc_age(ts) if ts else 0
                 spot['age'] = age
                 spot['age_formatted'] = fmt_age(age)
+                spot['time_color_bucket'] = get_time_color_bucket(ts)
             
             return jsonify({
                 'callsign': callsign,
@@ -1704,6 +1719,7 @@ def api_analysis_summary():
     try:
         logs = []
         source_name = ''
+        fallback_message = None
         
         if source == 'wavelog':
             # Wavelog API 数据源
@@ -1711,16 +1727,29 @@ def api_analysis_summary():
             if not adapter:
                 return jsonify({
                     'success': False,
-                    'error': 'Wavelog 未配置，请设置 WAVELOG_URL 和 WAVELOG_API_KEY'
+                    'error': 'Wavelog 未配置，请设置 WAVELOG_URL 和 WAVELOG_API_KEY',
+                    'suggestion': '您也可以在 .env 文件中配置 WAVELOG_URL 和 WAVELOG_API_KEY 环境变量'
                 }), 400
             
-            logs = adapter.get_all_qsos(days_back=365)
-            for log_item in logs:
-                log_item['_ts'] = parse_qso_ts(log_item)
-            logs = [log_item for log_item in logs if in_time_window(log_item.get('_ts'))]
-            source_name = f'Wavelog ({len(logs)} QSO)'
+            try:
+                logs = adapter.get_all_qsos(days_back=365)
+                if not logs:
+                    fallback_message = 'Wavelog API 返回空数据，已自动切换到 Cluster 实时数据'
+                    logs = []
+                else:
+                    for log_item in logs:
+                        log_item['_ts'] = parse_qso_ts(log_item)
+                    logs = [log_item for log_item in logs if in_time_window(log_item.get('_ts'))]
+                    source_name = f'Wavelog ({len(logs)} QSO)'
+            except Exception as e:
+                log(f'[Wavelog API 错误] {e}')
+                fallback_message = f'Wavelog API 请求失败 ({str(e)})，已自动切换到 Cluster 实时数据'
+                logs = []
             
-        elif source == 'adi':
+            if not logs and fallback_message:
+                source = 'cluster'
+        
+        if source == 'adi' or (source != 'wavelog' and source != 'cluster' and Path('/workspace/dx_guardian/wsjtx_log.adi').exists()):
             # ADIF 文件数据源
             adi_path = '/workspace/dx_guardian/wsjtx_log.adi'
             if Path(adi_path).exists():
@@ -1730,9 +1759,17 @@ def api_analysis_summary():
                 for log_item in logs:
                     log_item['_ts'] = parse_qso_ts(log_item)
                 logs = [log_item for log_item in logs if in_time_window(log_item.get('_ts'))]
-            source_name = 'ADIF 文件'
-            
-        else:
+                source_name = 'ADIF 文件'
+                if not logs:
+                    fallback_message = 'ADIF 文件在时间范围内无数据'
+            elif source == 'adi':
+                return jsonify({
+                    'success': False,
+                    'error': 'ADIF 文件不存在',
+                    'suggestion': '请将 ADIF 文件放置在 /workspace/dx_guardian/wsjtx_log.adi'
+                }), 404
+        
+        if not logs:
             # 默认：当前 Cluster 数据
             conn = sqlite3.connect(get_database().db_path)
             conn.row_factory = sqlite3.Row
@@ -1756,10 +1793,16 @@ def api_analysis_summary():
                 })
             source_name = 'Cluster 实时数据'
         
+        final_source_name = source_name or 'Cluster 实时数据'
+        if fallback_message:
+            log(f'[日志分析] 回退：{fallback_message}')
+        
         if not logs:
             return jsonify({
                 'success': False,
-                'error': '没有数据可分析'
+                'error': '没有数据可分析',
+                'suggestion': '请尝试以下方法：1) 确认 Wavelog 配置正确且有 QSO 记录；2) 上传 ADIF 文件到 /workspace/dx_guardian/wsjtx_log.adi；3) 等待 Cluster 接收到新的 Spot 数据',
+                'fallback_message': fallback_message
             }), 404
         
         # 统计
@@ -1775,11 +1818,11 @@ def api_analysis_summary():
         analysis = analyzer.analyze_all(logs)
         time_buckets = summarize_time_age(logs)
         
-        log(f'[日志分析] 完成分析：{stats["total_qso"]} 条 QSO (源：{source_name})')
+        log(f'[日志分析] 完成分析：{stats["total_qso"]} 条 QSO (源：{final_source_name})')
         
-        return jsonify({
+        result = {
             'success': True,
-            'source': source_name,
+            'source': final_source_name,
             'summary': stats,
             'analysis': analysis,
             'time_color_buckets': time_buckets,
@@ -1788,7 +1831,11 @@ def api_analysis_summary():
                 'start_ts': start_ts,
                 'end_ts': end_ts,
             }
-        })
+        }
+        if fallback_message:
+            result['warning'] = fallback_message
+        
+        return result
         
     except Exception as e:
         import traceback
