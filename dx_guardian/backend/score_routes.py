@@ -27,8 +27,29 @@ def register_score_routes(app, deps):
                 init_scorer()
                 scorer = get_scorer()
 
-            spot_data = request.json
-            spot = spot_data.get('spot', {})
+            spot_data = request.get_json(silent=True) or {}
+            # 兼容两种入参：
+            # 1) {"spot": {...}, "band_counts": ..., ...}
+            # 2) 扁平 spot 字段直接放在请求体根级
+            spot = spot_data.get('spot')
+            if not isinstance(spot, dict):
+                spot = {
+                    'callsign': spot_data.get('callsign'),
+                    'band': spot_data.get('band'),
+                    'mode': spot_data.get('mode'),
+                    'snr': spot_data.get('snr'),
+                    'distance_km': spot_data.get('distance_km'),
+                    'frequency': spot_data.get('frequency'),
+                    'freq': spot_data.get('freq', spot_data.get('frequency')),
+                    'timestamp': spot_data.get('timestamp'),
+                    'lat': spot_data.get('lat', 0),
+                    'lon': spot_data.get('lon', 0),
+                    'dxcc': spot_data.get('dxcc', ''),
+                }
+
+            if not spot.get('callsign'):
+                return jsonify({'error': 'invalid spot payload: callsign required'}), 400
+
             band_counts = spot_data.get('band_counts', {})
             total_spots = spot_data.get('total_spots', 0)
             solar_data = spot_data.get('solar_data', {})

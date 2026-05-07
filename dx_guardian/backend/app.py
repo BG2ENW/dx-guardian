@@ -502,6 +502,7 @@ def serve_pages(f):
     return send_from_directory(FRONTEND_DIR / 'pages', f)
 
 @app.route('/health')
+@app.route('/api/health')
 def health():
     with lock:
         bc = dict(band_counts)
@@ -833,7 +834,7 @@ def cluster_thread():
                 cluster_connected = True
             reconnect_attempts = 0
             socketio.emit('server_status', {'cluster_connected': True})
-            # 发送命令启用 Spot 推送
+            # 发送命令启用 Spot 推送（不同集群命令兼容性不同，失败不阻断主流程）
             log("[Cluster] 发送配置命令...")
             try:
                 s.send(b"SET/USER DXCluster\n")
@@ -860,6 +861,10 @@ def cluster_thread():
                         line = line.strip()
                         log(f"[Cluster 行] {line[:100]}")
                         if line:
+                            lowered = line.lower()
+                            if lowered.startswith('unknown command'):
+                                # 部分 DX Cluster 不支持 SET/USER、SET/DXCOUNT，忽略其回显噪音
+                                continue
                             try:
                                 process_spot(line)
                             except Exception as e:
@@ -1605,7 +1610,33 @@ def api_analysis_summary():
     from wavelog_adapter import get_wavelog_adapter
     from adif_parser import ADIFParser
     
-    source = request.args.get('source', 'current')
+    source = request.args.get('source', 'current').strip().lower()
+    allowed_sources = {'current', 'cluster', 'wavelog', 'adi'}
+    if source not in allowed_sources:
+        return jsonify({
+            'success': False,
+            'error': f'无效的数据源: {source}',
+            'suggestion': 'source 仅支持 current、cluster、wavelog、adi'
+        }), 400
+
+    days_arg = request.args.get('days', '').strip()
+    days = None
+    if days_arg:
+        try:
+            days = int(days_arg)
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': 'days 必须是整数',
+                'suggestion': '请使用 1-365 之间的整数，例如 days=7'
+            }), 400
+        if days < 1 or days > 365:
+            return jsonify({
+                'success': False,
+                'error': 'days 超出允许范围',
+                'suggestion': 'days 仅支持 1-365'
+            }), 400
+
     range_value = request.args.get('range', '24h').strip().lower()
     start_ts_arg = request.args.get('start_ts', '').strip()
     end_ts_arg = request.args.get('end_ts', '').strip()
@@ -1639,6 +1670,11 @@ def api_analysis_summary():
     now_ts = time.time()
     start_ts = parse_datetime_to_ts(start_ts_arg)
     end_ts = parse_datetime_to_ts(end_ts_arg)
+
+    if start_ts is None and end_ts is None and days is not None:
+        start_ts = now_ts - days * 24 * 60 * 60
+        end_ts = now_ts
+        range_value = f'{days}d'
 
     if start_ts is None and end_ts is None:
         range_seconds = parse_range_to_seconds(range_value)
