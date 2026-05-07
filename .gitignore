@@ -12,3 +12,8 @@ app.log
 # 本地开发文件
 scripts/local_*
 *.bak
+
+# Database
+*.db-journal
+*.sqlite
+*.sqlite3
