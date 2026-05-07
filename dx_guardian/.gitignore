@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Database files (运行产物)
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+logs/
+
+# ADIF/CSV logs (用户数据)
+*.adi
+*.adif
+*.csv
+
+# Wavelog adapter cache
+backend/cache/
+backend/data/*cache*.json
+
+# Temporary files
+*.tmp
+*.bak
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
