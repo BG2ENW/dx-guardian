@@ -30,6 +30,11 @@ wheels/
 *.swo
 *~
 
+# Environment variables (敏感配置)
+.env
+.env.local
+.env.*.local
+
 # Database files (运行产物)
 *.db
 *.sqlite
