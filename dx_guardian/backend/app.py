@@ -502,11 +502,19 @@ register_opportunities_routes(
     {
         'log': log,
         'get_spot_history': lambda: spot_history,
-        'get_scorer': lambda: scorer,
-        'get_solar_data': lambda: SOLAR_DATA,
         'get_band_counts': lambda: band_counts,
         'get_total_spots': lambda: total_spots,
+        'get_solar_data': lambda: SOLAR_DATA,
         'get_dxcc_cn': get_dxcc_cn,
+    },
+)
+
+# 注册 LoTW 路由
+from lotw_routes import register_lotw_routes
+register_lotw_routes(
+    app,
+    {
+        'log': log,
     },
 )
 
@@ -1816,7 +1824,7 @@ def api_analysis_summary():
     import sqlite3
     import calendar
     from log_analyzer import get_analyzer
-    from wavelog_adapter import get_wavelog_adapter
+    from wavelog_adapter import get_cursor
     from adif_parser import ADIFParser
     
     source = request.args.get('source', 'current').strip().lower()
@@ -2235,11 +2243,19 @@ if __name__ == '__main__':
     init_database()
     load_spots_from_db(limit=1000)  # 加载最近 1000 条到内存缓存
 
+    # ========== 启动 LoTW 自动刷新线程 ==========
+    try:
+        from lotw_refresh import start_lotw_refresh
+        start_lotw_refresh()
+        log('[LoTW] 自动刷新线程已启动')
+    except ImportError:
+        log('[LoTW] 未找到 lotw_refresh 模块，跳过初始化')
+
     # Cluster 连接线程
     t = threading.Thread(target=cluster_thread, daemon=True)
     t.start()
 
-    # PSKReporter 数据源线程
+    # PSKReporter 数据源线秷
     t2 = threading.Thread(target=pskreporter_thread, daemon=True)
     t2.start()
 
@@ -2249,8 +2265,8 @@ if __name__ == '__main__':
 
     log('\n🚀 DX Guardian 启动!')
     log(f'   http://0.0.0.0:5000')
-    log(f'   数据源: DX Cluster + PSKReporter')
-    log(f'   后端缓存: {SPOT_HISTORY_MAX} 条')
+    log(f'   数据源：DX Cluster + PSKReporter + LoTW(自动刷新)')
+    log(f'   后端缓存：{SPOT_HISTORY_MAX} 条')
 
     # 初始化评分引擎
     pass  # scorer 暂缓

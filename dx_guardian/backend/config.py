@@ -69,6 +69,13 @@ DXCC_PREFIX_FILE = BASE_DIR / 'data' / 'prefix_to_dxcc.json'
 WAVELOG_URL = _get_env('WAVELOG_URL', '', required_in_production=True)
 WAVELOG_API_KEY = _get_env('WAVELOG_API_KEY', '', required_in_production=True)
 
+# Wavelog 数据库直连配置（仅内部使用）
+WAVELOG_DB_HOST = _get_env('WAVELOG_DB_HOST', '39.103.65.85')
+WAVELOG_DB_PORT = int(_get_env('WAVELOG_DB_PORT', '3306'))
+WAVELOG_DB_USER = _get_env('WAVELOG_DB_USER', 'wavelog')
+WAVELOG_DB_PASSWORD = _get_env('WAVELOG_DB_PASSWORD', required_in_production=True)
+WAVELOG_DB_DATABASE = _get_env('WAVELOG_DB_DATABASE', 'wavelog')
+
 # ClubLog Application Password（用于 callbook 查询）
 # 获取方式：登录 ClubLog -> Settings -> App Passwords
 CLUBLOG_APP_PASSWORD = _get_env('CLUBLOG_APP_PASSWORD', '', required_in_production=True)

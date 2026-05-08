@@ -132,21 +132,22 @@ function renderAlerts() {
         const dxccCn = spot.dxcc_cn || '';
         const snr = spot.snr ? `SNR:${spot.snr}` : '';
         const srcIcon = spot.source === 'pskreporter' ? '📡' : '📻';
+        const priorityText = { urgent: '紧急', important: '重要', normal: '普通' }[priority] || '普通';
         
-        return `<div class="alert-item" style="border-left:3px solid ${borderColor};${readStyle}" data-id="${alert.id}">
+        return `<div class="alert-item priority-${priority}" ${readStyle} data-id="${alert.id}">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                 <div style="flex:1;">
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                        <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:${borderColor};color:#fff;font-weight:bold;">${alert.priority_label || '普通'}</span>
+                        <span class="alert-priority-badge ${priority}">${priorityText}</span>
                         <span>${icon}</span>
-                        <span style="font-weight:bold;color:#fff;font-size:13px;">${spot.callsign || '?'}</span>
-                        <span style="color:#aaa;font-size:11px;">${spot.band || ''} ${spot.mode || ''}</span>
-                        <span style="color:#666;font-size:10px;">${srcIcon}</span>
+                        <span style="font-weight:bold;color:var(--text-primary);font-size:13px;">${spot.callsign || '?'}</span>
+                        <span style="color:var(--text-secondary);font-size:11px;">${spot.band || ''} ${spot.mode || ''}</span>
+                        <span style="color:var(--text-tertiary);font-size:10px;">${srcIcon}</span>
                     </div>
-                    <div style="font-size:12px;color:#ddd;margin-bottom:4px;">${alert.message}</div>
-                    ${dxccCn ? `<div style="font-size:10px;color:#888;margin-bottom:2px;">${dxccCn}</div>` : ''}
+                    <div style="font-size:12px;color:var(--text-primary);margin-bottom:4px;">${alert.message}</div>
+                    ${dxccCn ? `<div style="font-size:10px;color:var(--text-secondary);margin-bottom:2px;">${dxccCn}</div>` : ''}
                     <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div style="font-size:11px;color:#666;">${timeStr} ${snr}</div>
+                        <div style="font-size:11px;color:var(--text-tertiary);">${timeStr} ${snr}</div>
                         <div style="display:flex;gap:4px;">
                             ${!alert.is_read ? `<button onclick="markAlertRead('${alert.id}')" style="background:rgba(76,175,80,0.2);border:1px solid #4CAF50;color:#4CAF50;border-radius:3px;padding:1px 5px;font-size:10px;cursor:pointer;">已读</button>` : ''}
                             <button onclick="silenceAlert('${spot.callsign || ''}')" style="background:rgba(255,152,0,0.2);border:1px solid #FF9800;color:#FF9800;border-radius:3px;padding:1px 5px;font-size:10px;cursor:pointer;">静默</button>
