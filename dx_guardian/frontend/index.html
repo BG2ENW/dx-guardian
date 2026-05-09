@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>DX Guardian - 实时 DX Spot 监控</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#e94560">
+    <link rel="stylesheet" href="css/leaflet.css?v=1.6"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #1a1a2e;
+            --bg-card: #16213e;
+            --accent-primary: #e94560;
+            --accent-secondary: #4CAF50;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaa;
+            --border-color: rgba(255,255,255,0.08);
+            --border-hover: rgba(255,255,255,0.15);
+        }
+        /* 浅色模式 - 完整重构配色 */
+        [data-theme="light"] {
+            --bg-primary: #f5f7fb;           /* 主背景：浅灰蓝 */
+            --bg-secondary: #ffffff;         /* 卡片背景：纯白 */
+            --bg-tertiary: #e8ecf1;          /* 第三级背景 */
+            --bg-card: #ffffff;              /* 卡片：纯白 */
+            --accent-primary: #2563eb;       /* 主强调色：蓝色 */
+            --accent-secondary: #16a34a;     /* 次强调色：绿色 */
+            --accent-gradient: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            --text-primary: #1a1a1a;         /* 主文字：深黑，对比度 18:1 */
+            --text-secondary: #4b5563;       /* 次要文字：中灰，对比度 8:1 */
+            --text-tertiary: #6b7280;        /* 提示文字：深灰 */
+            --border-color: #dfe3e8;         /* 边框：浅灰 */
+            --border-hover: #9aa5b1;         /* 边框 hover */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 浅色模式 - 全面覆盖所有元素配色 */
+        [data-theme="light"] .band-item {
+            background: #e8ecf1;
+            border-color: #d0d5dc;
+            color: #4b5563;
+        }
+        [data-theme="light"] .band-item:hover {
+            background: #dfe3e8;
+            border-color: #c0c6cf;
+        }
+        [data-theme="light"] .band-item.active {
+            background: #dbeafe;
+            border-color: #2563eb;
+            box-shadow: 0 0 8px rgba(37,99,235,0.3);
+        }
+        [data-theme="light"] .band-item.filter-active {
+            background: #dcfce7;
+            border-color: #16a34a;
+            box-shadow: 0 0 8px rgba(22,163,74,0.3);
+        }
+        [data-theme="light"] .band-name {
+            color: #6b7280;
+        }
+        [data-theme="light"] .band-count {
+            color: #1a1a1a;
+            text-shadow: none;
+        }
+        
+        [data-theme="light"] .card {
+            border-color: #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        [data-theme="light"] .card:hover {
+            border-color: #d0d5dc;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        [data-theme="light"] .card-header {
+            background: #f0f2f5;
+            border-bottom-color: #e5e7eb;
+        }
+        [data-theme="light"] .card-header:hover {
+            background: #e8ecf1;
+        }
+        
+        [data-theme="light"] .card-body {
+            color: #4b5563;
+        }
+        [data-theme="light"] .row {
+            color: #6b7280;
+        }
+        [data-theme="light"] .row .val {
+            color: #1a1a1a;
+        }
+        
+        [data-theme="light"] .solar-item {
+            background: #f9fafb;
+            border-color: #e5e7eb;
+        }
+        [data-theme="light"] .solar-item .label {
+            color: #6b7280;
+        }
+        [data-theme="light"] .solar-item .value {
+            color: #2563eb;
+        }
+        
+        [data-theme="light"] .alert-item {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+        [data-theme="light"] .alert-item.priority-urgent {
+            background: #fee2e2;
+        }
+        [data-theme="light"] .alert-item.priority-important {
+            background: #fef3c7;
+            border-left-color: #f59e0b;
+        }
+        
+        [data-theme="light"] .spot {
+            background: #f9fafb;
+            border-left-color: #2563eb;
+        }
+        [data-theme="light"] .spot-call {
+            color: #1a1a1a;
+        }
+        [data-theme="light"] .spot-freq {
+            color: #2563eb;
+        }
+        [data-theme="light"] .spot-info {
+            color: #6b7280;
+        }
+        
+        [data-theme="light"] .watchlist-item {
+            background: #f9fafb;
+            border-bottom-color: #e5e7eb;
+        }
+        [data-theme="light"] .watchlist-item:hover {
+            background: #f3f4f6;
+        }
+        [data-theme="light"] .watchlist-call {
+            color: #1a1a1a;
+        }
+        [data-theme="light"] .watchlist-type {
+            color: #4b5563;
+            margin-right: 4px;
+        }
+        [data-theme="light"] .watchlist-band {
+            color: #6b7280;
+        }
+        [data-theme="light"] .watchlist-tag {
+            background: #e8ecf1;
+            color: #4b5563;
+        }
+        [data-theme="light"] .wl-btn {
+            background: #e8ecf1;
+            color: #4b5563;
+        }
+        [data-theme="light"] .wl-delete {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        [data-theme="light"] .wl-delete:hover {
+            background: #fecaca;
+        }
+        
+        [data-theme="light"] .opp-item {
+            background: #f9fafb;
+        }
+        [data-theme="light"] .opp-score {
+            color: #16a34a;
+        }
+        
+        [data-theme="light"] .prop-bar {
+            background: #e5e7eb;
+        }
+        [data-theme="light"] .prop-good {
+            background: #16a34a;
+        }
+        [data-theme="light"] .prop-mid {
+            background: #f59e0b;
+        }
+        [data-theme="light"] .prop-bad {
+            background: #ef4444;
+        }
+        
+        [data-theme="light"] .band-table th {
+            background: #f3f4f6;
+            color: #374151;
+            border-color: #e5e7eb;
+        }
+        [data-theme="light"] .band-table td {
+            color: #1a1a1a;
+            border-color: #e5e7eb;
+        }
+        [data-theme="light"] .band-open {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        [data-theme="light"] .band-closed {
+            background: #f3f4f6;
+            color: #9ca3af;
+        }
+        
+        [data-theme="light"] .time-btn,
+        [data-theme="light"] .time-btn2 {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            color: #4b5563;
+        }
+        [data-theme="light"] .time-btn:hover,
+        [data-theme="light"] .time-btn2:hover {
+            background: #e5e7eb;
+        }
+        [data-theme="light"] .time-btn.active,
+        [data-theme="light"] .time-btn2.active {
+            background: #dbeafe;
+            border-color: #2563eb;
+            color: #1a1a1a;
+        }
+        
+        [data-theme="light"] .upload-area {
+            border-color: #d1d5db;
+            color: #6b7280;
+        }
+        [data-theme="light"] .upload-area:hover {
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+        [data-theme="light"] .upload-area.dragover {
+            border-color: #16a34a;
+            background: #dcfce7;
+        }
+        
+        [data-theme="light"] .collapse-btn {
+            background: #e5e7eb;
+        }
+        [data-theme="light"] .collapse-btn:hover {
+            background: #d1d5db;
+        }
+        
+        [data-theme="light"] .modal-box {
+            background: #ffffff;
+            border-color: #e5e7eb;
+        }
+        [data-theme="light"] .modal-title {
+            color: #2563eb;
+        }
+        [data-theme="light"] .modal-field label {
+            color: #6b7280;
+        }
+        [data-theme="light"] .modal-field input,
+        [data-theme="light"] .modal-field select {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            color: #1a1a1a;
+        }
+        [data-theme="light"] .modal-field input:focus,
+        [data-theme="light"] .modal-field select:focus {
+            border-color: #2563eb;
+        }
+        [data-theme="light"] .btn-primary {
+            background: #2563eb;
+        }
+        [data-theme="light"] .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        [data-theme="light"] .btn-secondary {
+            background: #f3f4f6;
+            color: #4b5563;
+            border-color: #d1d5db;
+        }
+        [data-theme="light"] .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        [data-theme="light"] .topbar {
+            background: linear-gradient(90deg, #ffffff 0%, #f8fafc 100%);
+            border-bottom: 2px solid #2563eb;
+        }
+        [data-theme="light"] .topbar-stats {
+            color: #6b7280;
+        }
+        [data-theme="light"] .topbar-stats .val {
+            color: #1a1a1a;
+        }
+        
+        [data-theme="light"] .theme-btn {
+            background: #f3f4f6;
+        }
+        [data-theme="light"] .theme-btn:hover {
+            background: #e5e7eb;
+        }
+        [data-theme="ocean"] {
+            --bg-primary: #0a1628;
+            --bg-secondary: #1a3a5c;
+            --bg-tertiary: #0d2137;
+            --bg-card: #1a3a5c;
+            --accent-primary: #00d9ff;
+            --accent-secondary: #00ff88;
+            --text-primary: #e0f0ff;
+            --text-secondary: #a0c0e0;
+            --border-color: rgba(0,217,255,0.15);
+            --border-hover: rgba(0,217,255,0.3);
+        }
+        [data-theme="forest"] {
+            --bg-primary: #0d1a0f;
+            --bg-secondary: #1a3a1f;
+            --bg-tertiary: #0f2913;
+            --bg-card: #1a3a1f;
+            --accent-primary: #4CAF50;
+            --accent-secondary: #8BC34A;
+            --text-primary: #e0ffe0;
+            --text-secondary: #a0d0a0;
+            --border-color: rgba(76,175,80,0.15);
+            --border-hover: rgba(76,175,80,0.3);
+        }
+        [data-theme="sunset"] {
+            --bg-primary: #1a0f0f;
+            --bg-secondary: #3a1a1a;
+            --bg-tertiary: #290f0f;
+            --bg-card: #3a1a1a;
+            --accent-primary: #ff6b6b;
+            --accent-secondary: #ffa502;
+            --text-primary: #ffe0e0;
+            --text-secondary: #e0a0a0;
+            --border-color: rgba(255,107,107,0.15);
+            --border-hover: rgba(255,107,107,0.3);
+        }
+        [data-theme="purple"] {
+            --bg-primary: #1a0f28;
+            --bg-secondary: #3a1a5c;
+            --bg-tertiary: #290f3a;
+            --bg-card: #3a1a5c;
+            --accent-primary: #d580ff;
+            --accent-secondary: #ff80bf;
+            --text-primary: #f0e0ff;
+            --text-secondary: #d0a0e0;
+            --border-color: rgba(213,128,255,0.15);
+            --border-hover: rgba(213,128,255,0.3);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
+        
+        /* ===== Top Bar ===== */
+        .topbar {
+            height: 48px;
+            background: linear-gradient(90deg, rgba(43,58,77,0.95) 0%, rgba(60,78,99,0.95) 100%);
+            border-bottom: 2px solid var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 1000;
+            transition: all 0.3s;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .topbar-left { display: flex; align-items: center; gap: 16px; }
+        .topbar-logo { font-size: 16px; font-weight: bold; color: var(--accent-primary); transition: color 0.3s; }
+        .topbar-stats { display: flex; gap: 12px; font-size: 12px; color: #a8b5c5; }
+        .topbar-stats span { display: flex; align-items: center; gap: 4px; }
+        .topbar-stats .val { color: #e8eef5; font-weight: bold; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .dot-on { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; box-shadow: 0 0 6px #4CAF50; }
+        .dot-off { width: 8px; height: 8px; border-radius: 50%; background: #f44336; }
+        
+        /* 主题选择器 */
+        .theme-selector { position: relative; }
+        .theme-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--text-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        .theme-btn:hover { background: rgba(255,255,255,0.2); }
+        .theme-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-hover);
+            border-radius: 8px;
+            padding: 6px;
+            z-index: 2000;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            min-width: 200px;
+        }
+        .theme-dropdown.show { display: block; }
+        .theme-dropdown-inner {
+            background: rgba(255,255,255,0.95);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 2px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #303133;
+            background: transparent;
+            border: 1px solid transparent;
+        }
+        .theme-option:hover { 
+            background: rgba(0,0,0,0.06); 
+            border-color: rgba(0,0,0,0.15);
+        }
+        .theme-option:last-child { margin-bottom: 0; }
+        .theme-option.active {
+            background: rgba(0,0,0,0.08);
+            border-color: var(--accent-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .theme-preview {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.3);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+        
+        /* 深色主题下的下拉菜单文字颜色调整 */
+        [data-theme="default"] .theme-option,
+        [data-theme="ocean"] .theme-option,
+        [data-theme="forest"] .theme-option,
+        [data-theme="sunset"] .theme-option,
+        [data-theme="purple"] .theme-option {
+            color: #303133;
+        }
+        [data-theme="light"] .theme-option {
+            color: #303133;
+        }
+        
+        /* ===== Band Bar (内嵌到 Top Bar) ===== */
+        .band-bar { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+        .band-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-width: 48px; padding: 2px 6px;
+            background: rgba(120,140,160,0.25); border-radius: 4px;
+            font-size: 10px; color: var(--text-secondary); cursor: pointer;
+            transition: all 0.2s; border: 1px solid rgba(120,140,160,0.4);
+            position: relative;
+        }
+        .band-item:hover { background: rgba(120,140,160,0.35); border-color: rgba(120,140,160,0.6); }
+        .band-item.active { border-color: var(--accent-primary); background: rgba(37,99,235,0.25); box-shadow: 0 0 8px rgba(37,99,235,0.4); }
+        .band-item.filter-active { border-color: var(--accent-secondary); background: rgba(22,163,74,0.25); box-shadow: 0 0 8px rgba(22,163,74,0.4); }
+        .band-item.inactive { opacity: 0.4; }
+        .band-name { font-size: 9px; color: rgba(220,230,240,0.95); margin-bottom: 1px; }
+        .band-count { font-size: 13px; font-weight: bold; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+        
+        /* ===== Main Layout ===== */
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr 360px;
+            gap: 0;
+            height: calc(100vh - 48px);
+        }
+        
+        /* ===== Side Columns ===== */
+        .column {
+            overflow-y: auto;
+            padding: 8px;
+            background: var(--bg-primary);
+            transition: background 0.3s;
+        }
+        .column-left { border-right: 1px solid var(--border-color); }
+        .column-right { border-left: 1px solid var(--border-color); }
+        
+        /* 滚动条样式 */
+        .column::-webkit-scrollbar { width: 6px; }
+        .column::-webkit-scrollbar-track { background: transparent; }
+        .column::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        .column::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+        
+        /* ===== Middle Column (QSO + Map) ===== */
+        .column-middle {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+        
+        /* QSO Module */
+        .qso-module-wrapper {
+            flex: 0 0 220px;
+            min-height: 180px;
+            max-height: 40vh;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-primary);
+        }
+        .qso-module-container {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: visible;
+            background: var(--bg-card);
+            transition: border-color 0.3s;
+            position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .qso-module-container:hover,
+        .qso-module-container.resizing {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 12px rgba(233, 69, 96, 0.2);
+        }
+        .qso-module-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(120,140,160,0.15);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--accent-primary);
+            flex-shrink: 0;
+            gap: 12px;
+        }
+        
+        .qso-header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+        
+        .qso-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: normal;
+        }
+        
+        .qso-filter-select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(120,140,160,0.3);
+            border-radius: 3px;
+            color: var(--text-primary);
+            font-size: 11px;
+            padding: 3px 6px;
+            cursor: pointer;
+            outline: none;
+        }
+        
+        .qso-filter-select:hover {
+            border-color: var(--accent-primary);
+        }
+        
+        .qso-filter-select:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 5px rgba(233, 69, 96, 0.3);
+        }
+        .qso-module-content {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        .qso-height-resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            cursor: ns-resize;
+            background: transparent;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .qso-height-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
+        
+        /* Map Module */
+        .map-module-wrapper {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            min-height: 300px;
+        }
+        #dx-map {
+            width: 100%;
+            height: 100%;
+            min-height: 100%;
+        }
+        .map-module-container {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: var(--bg-card);
+            transition: border-color 0.3s;
+            position: relative;
+        }
+        .map-module-container:hover,
+        .map-module-container.resizing {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 12px rgba(233, 69, 96, 0.2);
+        }
+        .map-module-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(120,140,160,0.15);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--accent-primary);
+            flex-shrink: 0;
+        }
+        .map-module-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .map-module-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            position: relative;
+        }
+        
+        /* Map resize handles */
+        .map-resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .map-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
+        .map-height-resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            cursor: ns-resize;
+            background: transparent;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .map-height-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
+        
+        /* Map controls */
+        .map-controls-top, .map-controls-bottom {
+            position: absolute !important;
+            z-index: 1000 !important;
+            pointer-events: auto;
+        }
+        .map-controls-top > button, .map-controls-bottom > button {
+            z-index: 1001;
+            pointer-events: auto;
+        }
+        
+        /* QSO Stats Panel */
+        .map-qso-panel {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px;
+            flex-shrink: 0;
+        }
+        .qso-stats-row {
+            display: flex;
+            gap: 10px;
+        }
+        .qso-stat-item {
+            flex: 1;
+            background: rgba(120,140,160,0.15);
+            border-radius: 6px;
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+        }
+        .qso-stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .qso-stat-title {
+            font-size: 11px;
+            color: var(--accent-primary);
+            font-weight: bold;
+        }
+        .qso-stat-count {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+        .qso-list {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 10px;
+            margin-top: 6px;
+        }
+        .qso-item {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        /* ADIF Import/Export Panel */
+        .adif-panel {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.2);
+            border-top: 1px solid var(--border-color);
+            font-size: 11px;
+            gap: 8px;
+        }
+        
+        .adif-button {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .adif-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+        }
+        
+        .adif-button:active {
+            transform: translateY(0);
+        }
+        
+        .adif-button.secondary {
+            background: var(--accent-secondary);
+        }
+        
+        .adif-file-input {
+            display: none;
+        }
+
+        .qso-item:last-child { border-bottom: none; }
+        .qso-row-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+        .qso-callsign { 
+            color: var(--text-primary); 
+            font-weight: bold;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        .qso-country {
+            color: var(--text-secondary);
+            font-size: 9px;
+            white-space: nowrap;
+        }
+        .qso-spotter {
+            color: #FF9800;
+            font-size: 9px;
+        }
+        .qso-row-meta {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .qso-freq { color: var(--accent-secondary); font-size: 9px; font-family: monospace; }
+        .qso-mode { color: #2196F3; font-size: 9px; padding: 1px 4px; border-radius: 3px; background: rgba(33,150,243,0.2); }
+        .qso-grid { color: #9C27B0; font-size: 9px; font-family: monospace; }
+        .qso-time { color: var(--text-secondary); font-size: 9px; margin-left: auto; }
+        .qso-age { color: #FF9800; font-size: 9px; font-weight: bold; padding: 1px 4px; border-radius: 3px; background: rgba(255,152,0,0.15); margin-left: 4px; }
+        .qso-comments {
+            color: var(--text-secondary);
+            font-size: 9px;
+            margin-top: 2px;
+            padding-top: 2px;
+            border-top: 1px dashed rgba(255,255,255,0.1);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Map resize handle */
+        .map-resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .map-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
+        
+        /* Map height resize handle */
+        .map-height-resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            cursor: ns-resize;
+            background: transparent;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .map-height-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
+        
+        /* Map controls - 确保始终可见 */
+        .map-controls-top, .map-controls-bottom {
+            z-index: 1000 !important;
+        }
+        .map-controls-top > button, .map-controls-bottom > button {
+            z-index: 1001;
+            pointer-events: auto;
+        }
+        
+        /* Map resize handle */
+        .map-resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 8px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .map-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
+        
+        /* Map height resize handle */
+        .map-height-resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            cursor: ns-resize;
+            background: transparent;
+            z-index: 1000;
+            transition: background 0.2s;
+        }
+        .map-height-resize-handle:hover { background: rgba(233, 69, 96, 0.3); }
+        
+        /* Map toggle button - 固定在左侧列右边 */
+        .map-toggle-btn {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 240px; /* 左侧列宽度 240px */
+            width: 28px;
+            height: 60px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0 6px 6px 0;
+            color: var(--accent-primary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.3s;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+        }
+        .map-toggle-btn:hover { 
+            background: rgba(233, 69, 96, 0.2);
+            left: 235px;
+        }
+        .map-toggle-btn.hidden { display: none; }
+        
+        /* ===== Draggable Cards ===== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            overflow: hidden;
+            transition: box-shadow 0.2s, transform 0.2s, background 0.3s, border-color 0.3s;
+            cursor: default;
+        }
+        .card:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(120,140,160,0.15);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--accent-primary);
+            cursor: move;
+            transition: all 0.3s;
+        }
+        .card-header:hover { background: rgba(120,140,160,0.25); }
+        .card-header .drag-handle { cursor: move; opacity: 0.6; margin-right: 6px; }
+        .card-header:hover .drag-handle { opacity: 1; }
+        .card-body { padding: 10px 12px; }
+        .card.collapsed .card-body { display: none; }
+        .card.collapsed .collapse-btn::after { content: '+'; }
+        .collapse-btn::after { content: '−'; display: block; }
+        .collapse-btn {
+            background: rgba(120,140,160,0.30);
+            border: none;
+            color: var(--accent-primary);
+            width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; cursor: pointer; font-size: 12px;
+            transition: all 0.3s;
+        }
+        .collapse-btn:hover { background: rgba(255,255,255,0.2); }
+        
+        /* Sortable 拖拽样式 */
+        .sortable-ghost { opacity: 0.3; }
+        .sortable-chosen { box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        
+        /* ===== Content Styles ===== */
+        .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; color: var(--text-secondary); }
+        .row .val { color: var(--text-primary); font-weight: bold; }
+        
+        .solar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .solar-item { background: rgba(120,140,160,0.18); padding: 8px; border-radius: 4px; text-align: center; border: 1px solid rgba(120,140,160,0.3); }
+        .solar-item .label { font-size: 9px; color: #a8b5c5; margin-bottom: 2px; }
+        .solar-item .value { font-size: 16px; font-weight: bold; color: var(--accent-primary); transition: color 0.3s; }
+        
+        .alert-item {
+            padding: 6px 8px; background: rgba(120,140,160,0.15); margin-bottom: 4px;
+            border-radius: 4px; font-size: 11px;
+            border-left: 3px solid #e94560;
+        }
+        .alert-item.priority-urgent { border-left-color: #f44336; background: rgba(244,67,54,0.12); }
+        .alert-item.priority-important { border-left-color: #FF9800; background: rgba(255,152,0,0.12); }
+        
+        .spot {
+            padding: 6px 8px; background: rgba(120,140,160,0.18); margin-bottom: 4px;
+            border-radius: 4px; border-left: 3px solid #2563eb; font-size: 11px;
+        }
+        .spot-call { font-weight: bold; color: #e8eef5; font-size: 12px; }
+        .spot-freq { color: #409EFF; font-size: 10px; }
+        .spot-info { color: #9aa8b8; font-size: 10px; margin-top: 2px; }
+        
+        .watchlist-item { 
+            padding: 5px 8px; 
+            font-size: 11px; 
+            border-bottom: 1px solid rgba(120,140,160,0.15); 
+            background: rgba(120,140,160,0.12);
+            border-radius: 3px;
+            margin-bottom: 2px;
+        }
+        .watchlist-item:last-child { border-bottom: none; }
+        .watchlist-item:hover { background: rgba(120,140,160,0.18); }
+        .watchlist-call { font-weight: bold; }
+        .watchlist-type { font-size: 10px; margin-right: 4px; }
+        .watchlist-tag { 
+            background: rgba(120,140,160,0.30);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-left: 4px;
+            color: #d0d8e0;
+        }
+        .wl-btn {
+            background: rgba(120,140,160,0.25);
+            border: none;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .wl-status { }
+        .wl-delete { background: rgba(244,67,54,0.20); color: #ef5350; }
+        .wl-delete:hover { background: rgba(244,67,54,0.30); }
+        
+        .opp-item { padding: 6px 8px; background: rgba(120,140,160,0.18); margin-bottom: 4px; border-radius: 4px; }
+        .opp-score { float: right; font-weight: bold; color: #4CAF50; }
+        
+        .prop-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 11px; }
+        .prop-band { width: 40px; font-weight: bold; }
+        .prop-bar { flex: 1; height: 6px; background: rgba(120,140,160,0.25); border-radius: 3px; overflow: hidden; }
+        .prop-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+        .prop-good { background: #4CAF50; }
+        .prop-mid { background: #FF9800; }
+        .prop-bad { background: #f44336; }
+        
+        .band-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .band-table th { padding: 4px; background: rgba(120,140,160,0.20); color: #c0c8d0; text-align: center; border: 1px solid rgba(120,140,160,0.3); }
+        .band-table td { padding: 3px; text-align: center; color: #e8eef5; border: 1px solid rgba(120,140,160,0.15); }
+        .band-open { background: rgba(76,175,80,0.18); color: #4CAF50; }
+        .band-closed { background: rgba(120,140,160,0.12); color: #6c7a89; }
+        
+        /* Spot 立体标记 */
+        .spot-marker-wrapper { background: none !important; border: none !important; }
+        .spot-pin { position: relative; display: flex; align-items: center; justify-content: center; }
+        .spot-dot {
+            position: relative; z-index: 2; border-radius: 50%;
+            background: var(--pin-color); border: 2px solid rgba(255,255,255,0.9);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 6px var(--pin-color),
+                inset 0 -2px 4px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3);
+        }
+        .spot-pulse {
+            position: absolute; z-index: 1; border-radius: 50%;
+            background: var(--pin-color); opacity: 0;
+            animation: spot-pulse-anim 2.5s ease-out infinite;
+        }
+        @keyframes spot-pulse-anim {
+            0% { transform: scale(0.5); opacity: 0.6; }
+            100% { transform: scale(1.8); opacity: 0; }
+        }
+        @keyframes blink { 50% { opacity: 0.3; } }
+        
+        /* Leaflet */
+        .spot-tooltip { background: #1a1a2e !important; color: #e0e0e0; border: 1px solid #e94560; border-radius: 8px; padding: 8px 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+        .leaflet-popup-content-wrapper { background: #16213e; color: #e0e0e0; border: 1px solid #e94560; border-radius: 8px; }
+        .leaflet-popup-tip { background: #16213e; }
+        
+        /* 时间筛选 */
+        .time-btn {
+            padding: 2px 6px; font-size: 10px; border: 1px solid rgba(120,140,160,0.4);
+            background: rgba(120,140,160,0.20); color: #a8b5c5; border-radius: 3px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .time-btn:hover { background: rgba(120,140,160,0.30); color: #c5d0de; }
+        .time-btn.active { background: rgba(37,99,235,0.30); border-color: #2563eb; color: #fff; font-weight: bold; box-shadow: 0 0 6px rgba(37,99,235,0.3); }
+        
+        /* 顶部筛选按钮（新） */
+        .time-btn2 {
+            padding: 3px 8px; font-size: 11px; border: 1px solid rgba(120,140,160,0.4);
+            background: rgba(120,140,160,0.25); color: #a8b5c5; border-radius: 4px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .time-btn2:hover { background: rgba(120,140,160,0.35); color: #e8eef5; }
+        .time-btn2.active { background: rgba(37,99,235,0.35); border-color: #2563eb; color: #fff; font-weight: bold; box-shadow: 0 0 6px rgba(37,99,235,0.4); }
+        
+        /* 上传区域 */
+        .upload-area {
+            border: 2px dashed rgba(120,140,160,0.35); border-radius: 6px;
+            padding: 12px; text-align: center; font-size: 11px; color: #9aa8b8;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .upload-area:hover { border-color: #2563eb; color: #2563eb; }
+        .upload-area.dragover { border-color: #16a34a; background: rgba(22,163,74,0.12); }
+        
+        /* Modal 样式 */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: #1a1f2e; border: 1px solid rgba(120,140,160,0.3);
+            border-radius: 12px; padding: 24px; width: 90%; max-width: 420px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+        }
+        .modal-title { font-size: 16px; font-weight: bold; color: #409EFF; margin-bottom: 16px; }
+        .modal-field { margin-bottom: 12px; }
+        .modal-field label { display: block; font-size: 12px; color: #a8b5c5; margin-bottom: 4px; }
+        .modal-field input, .modal-field select {
+            width: 100%; padding: 8px 12px; background: rgba(120,140,160,0.18);
+            border: 1px solid rgba(120,140,160,0.35); border-radius: 6px;
+            color: #e8eef5; font-size: 13px; outline: none;
+        }
+        .modal-field input:focus, .modal-field select:focus { border-color: #2563eb; }
+        .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+        .modal-actions button {
+            flex: 1; padding: 8px; border: none; border-radius: 6px;
+            font-size: 13px; cursor: pointer; font-weight: bold;
+        }
+        .btn-primary { background: #2563eb; color: #fff; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-secondary { background: rgba(120,140,160,0.15); color: #a8b5c5; border: 1px solid rgba(120,140,160,0.25); }
+        .btn-secondary:hover { background: rgba(120,140,160,0.25); }
+        
+        /* 配色选择按钮 */
+        .theme-icon {
+            width: 16px; height: 16px;
+            background: linear-gradient(135deg, var(--accent-primary) 50%, var(--accent-secondary) 50%);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .layout { grid-template-columns: 220px 1fr 280px; }
+        }
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr auto; }
+            .column-left, .column-right { max-height: 30vh; }
+            .qso-module-wrapper { max-height: 25vh; }
+            .map-module-wrapper { min-height: 50vh; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="topbar-logo">📡 DX Guardian</div>
+            <div class="band-bar" id="band-bar"></div>
+        </div>
+        <div class="topbar-right">
+            <div class="filter-bar" style="display:flex;align-items:center;gap:6px;margin-right:12px;">
+                <div style="display:flex;gap:3px;">
+                    <button class="time-btn2" onclick="setTimeFilter(15)">15m</button>
+                    <button class="time-btn2 active" onclick="setTimeFilter(30)">30m</button>
+                    <button class="time-btn2" onclick="setTimeFilter(60)">1h</button>
+                    <button class="time-btn2" onclick="setTimeFilter(240)">4h</button>
+                </div>
+                <select id="mode-filter-select" onchange="setModeFilter(this.value)" style="padding:2px 6px;border-radius:3px;border:1px solid #444;background:#1a1a2e;color:#fff;font-size:11px;cursor:pointer;">
+                    <option value="ALL">所有模式</option>
+                    <option value="FT8" selected>FT8</option>
+                    <option value="FT4">FT4</option>
+                    <option value="CW">CW</option>
+                    <option value="SSB">SSB</option>
+                    <option value="RTTY">RTTY</option>
+                </select>
+                <span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">显示：<span id="visible-count">0</span></span>
+            </div>
+            <div class="topbar-stats">
+                <span><span class="dot-on" id="conn-dot"></span> <span id="conn-text">已连接</span></span>
+                <span>总 Spot: <span class="val" id="total-spots">0</span></span>
+                <span>运行：<span class="val" id="uptime">0h 0m</span></span>
+            </div>
+            <div class="theme-selector">
+                <button class="theme-btn" onclick="toggleThemeDropdown()">
+                    <span class="theme-icon"></span>
+                    <span>主题</span>
+                </button>
+                <div class="theme-dropdown" id="theme-dropdown">
+                    <div class="theme-dropdown-inner">
+                        <div class="theme-option active" data-theme="default" onclick="setTheme('default')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #e94560 0%, #0f0f1a 100%);"></div>
+                            <span>默认（深空）</span>
+                        </div>
+                        <div class="theme-option" data-theme="light" onclick="setTheme('light')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #409EFF 0%, #f5f7fa 100%);"></div>
+                            <span>浅色（明亮）</span>
+                        </div>
+                        <div class="theme-option" data-theme="ocean" onclick="setTheme('ocean')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #00d9ff 0%, #0a1628 100%);"></div>
+                            <span>海洋（蓝调）</span>
+                        </div>
+                        <div class="theme-option" data-theme="forest" onclick="setTheme('forest')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #4CAF50 0%, #0d1a0f 100%);"></div>
+                            <span>森林（绿色）</span>
+                        </div>
+                        <div class="theme-option" data-theme="sunset" onclick="setTheme('sunset')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #ff6b6b 0%, #1a0f0f 100%);"></div>
+                            <span>日落（暖色）</span>
+                        </div>
+                        <div class="theme-option" data-theme="purple" onclick="setTheme('purple')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #d580ff 0%, #1a0f28 100%);"></div>
+                            <span>紫韵（紫色）</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Layout -->
+    <div class="layout">
+        <!-- Left Column -->
+        <div class="column column-left" id="col-left">
+            <!-- 太阳数据 -->
+            <div class="card" id="card-solar">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>☀️ 太阳数据</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-solar')"></button>
+                </div>
+                <div class="card-body">
+                    <div class="solar-grid">
+                        <div class="solar-item"><div class="label">SFI</div><div class="value" id="solar-sfi">--</div></div>
+                        <div class="solar-item"><div class="label">SSN</div><div class="value" id="solar-ssn">--</div></div>
+                        <div class="solar-item"><div class="label">K 指数</div><div class="value" id="solar-k">--</div></div>
+                        <div class="solar-item"><div class="label">A 指数</div><div class="value" id="solar-a">--</div></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 系统状态 -->
+            <div class="card" id="card-system">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>📊 系统状态</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-system')"></button>
+                </div>
+                <div class="card-body">
+                    <div class="row"><span>Cluster</span><span class="val" id="cluster-status">--</span></div>
+                    <div class="row"><span>PSKReporter</span><span class="val" id="psk-status">--</span></div>
+                    <div class="row"><span>Spot 缓存</span><span class="val" id="cache-count">0</span></div>
+                    <div class="row"><span>活跃波段</span><span class="val" id="active-bands">0</span></div>
+                    <a class="time-btn" href="/pages/log_analysis.html" style="margin-top:6px;width:100%;display:block;text-align:center;text-decoration:none;">日志分析</a>
+                </div>
+            </div>
+            
+            <!-- 我的台站 -->
+            <div class="card" id="card-station">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>📡 我的台站</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-station')"></button>
+                </div>
+                <div class="card-body">
+                    <div class="row"><span>呼号</span><span class="val" id="st-call">BG2ENW</span></div>
+                    <div class="row"><span>Grid</span><span class="val" id="st-grid">--</span></div>
+                    <div class="row"><span>功率</span><span class="val" id="st-power">--</span></div>
+                    <div class="row"><span>天线</span><span class="val" id="st-antenna">--</span></div>
+                    <button class="time-btn" onclick="editStation()" style="margin-top:6px;width:100%;">✏️ 编辑台站</button>
+                </div>
+            </div>
+            
+            <!-- 关注列表 -->
+            <div class="card" id="card-watchlist">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>🎯 关注列表</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-watchlist')"></button>
+                </div>
+                <div class="card-body">
+                    <div id="watchlist-container">
+                        <div class="watchlist-item" style="color:#888;">加载中...</div>
+                    </div>
+                    <button class="time-btn" onclick="openWatchlistModal()" style="margin-top:6px;width:100%;">+ 添加关注</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Column -->
+        <button class="map-toggle-btn hidden" id="map-toggle-btn" onclick="toggleMap()">🌍</button>
+        
+        <!-- Middle Column (QSO + Map) -->
+        <div class="column-middle" id="column-middle">
+            <!-- My Spots 模块 -->
+            <div class="qso-module-wrapper">
+                <div class="qso-module-container" id="qso-module-container">
+                    <div class="qso-module-header">
+                        <div class="qso-header-left">
+                            <span>📡 My Spots</span>
+                            <div class="qso-filter-group">
+                                <label for="age-filter-select">时间范围:</label>
+                                <select id="age-filter-select" class="qso-filter-select" onchange="applyAgeFilter()">
+                                    <option value="">全部</option>
+                                    <option value="1">最近 1 小时</option>
+                                    <option value="6" selected>最近 6 小时</option>
+                                    <option value="12">最近 12 小时</option>
+                                    <option value="24">最近 24 小时</option>
+                                    <option value="168">最近 7 天</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="font-size:10px;color:var(--text-secondary);font-weight:normal;">拖动下边框可调整高度</div>
+                    </div>
+                    <div class="qso-module-content" id="qso-module-content">
+                        <div class="map-qso-panel" style="border:none;background:transparent;">
+                            <div class="qso-stats-row" style="padding:0;">
+                                <div class="qso-stat-item">
+                                    <div class="qso-stat-header">
+                                        <span class="qso-stat-title">📥 我收到的电台</span>
+                                        <span class="qso-stat-count" id="qso-calling-me-count">0</span>
+                                    </div>
+                                    <div class="qso-list" id="qso-calling-me-list">
+                                        <div style="color:#888;">暂无数据</div>
+                                    </div>
+                                </div>
+                                <div class="qso-stat-item">
+                                    <div class="qso-stat-header">
+                                        <span class="qso-stat-title">📢 收到我电台</span>
+                                        <span class="qso-stat-count" id="qso-heard-me-count">0</span>
+                                    </div>
+                                    <div class="qso-list" id="qso-heard-me-list">
+                                        <div style="color:#888;">暂无数据</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ADIF 导入导出面板 -->
+                    <div class="adif-panel">
+                        <span style="color:var(--text-secondary);margin-right:8px;">📊 数据管理:</span>
+                        <button class="adif-button" onclick="exportADIF()" title="导出最近 24 小时">
+                            📤 导出最近 24h
+                        </button>
+                        <label class="adif-button secondary" style="display:inline-block;cursor:pointer;">
+                            📥 导入 ADIF
+                            <input type="file" 
+                                   class="adif-file-input" 
+                                   accept=".adi,.adif" 
+                                   onchange="importADIF(this)"
+                                   style="display:none;">
+                        </label>
+                        <span id="adif-status" style="margin-left:10px;color:var(--text-secondary);font-size:10px;"></span>
+                    </div>
+
+                    <div class="qso-height-resize-handle" id="qso-height-resize-handle" title="拖动调整高度"></div>
+                </div>
+            </div>
+            
+            <!-- 地图模块 -->
+            <div class="map-module-wrapper" id="map-module-wrapper">
+                <div class="map-module-container">
+                    <!-- 地图模块标题栏 -->
+                    <div class="map-module-header">
+                        <div class="map-module-title">
+                            <span>🌍</span>
+                            <span>地图窗口</span>
+                        </div>
+                        <div style="font-size:10px;color:var(--text-secondary);font-weight:normal;">拖动边框可调整大小</div>
+                    </div>
+                    
+                    <!-- 地图内容区 -->
+                    <div class="map-module-content">
+                        <div class="map-resize-handle" id="map-resize-handle" title="拖动调整宽度"></div>
+                        
+                        <!-- 地图容器 -->
+                        <div id="dx-map"></div>
+                        
+                        <!-- 底部控制按钮（左侧） -->
+                        <div class="map-controls-bottom" style="position:absolute;bottom:10px;left:10px;display:flex;flex-direction:column;gap:6px;">
+                            <button class="time-btn" onclick="zoomMap(1)">➕ 放大</button>
+                            <button class="time-btn" onclick="zoomMap(-1)">➖ 缩小</button>
+                            <button class="time-btn" onclick="resetMapZoom()">🌍 全球</button>
+                        </div>
+                        
+                        <!-- 顶部控制按钮（右侧） -->
+                        <div class="map-controls-top" style="position:absolute;top:10px;right:10px;display:flex;gap:4px;">
+                            <button class="time-btn" id="btn-heat" onclick="toggleHeatmap()">🔥 热力</button>
+                            <button class="time-btn" id="btn-gray" onclick="toggleGrayline()">🌑 灰线</button>
+                            <button class="time-btn" id="btn-grid" onclick="toggleGridOverlay()">📐 网格</button>
+                            <button class="time-btn" onclick="closeMap()" title="关闭地图" style="background:rgba(233,69,96,0.3);border-color:#e94560;">✕</button>
+                        </div>
+                        
+                        <div class="map-height-resize-handle" id="map-height-resize-handle" title="拖动调整高度"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div class="column column-right" id="col-right">
+            <!-- HF 传播 -->
+            <div class="card" id="card-propagation">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>📈 HF 传播</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-propagation')"></button>
+                </div>
+                <div class="card-body" id="prop-container">
+                    <div style="color:#888;font-size:11px;">加载中...</div>
+                </div>
+            </div>
+            
+            <!-- 波段趋势 -->
+            <div class="card" id="card-trends">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>📊 波段趋势</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-trends')"></button>
+                </div>
+                <div class="card-body" id="trends-container">
+                    <div style="color:#888;font-size:11px;">加载中...</div>
+                </div>
+            </div>
+            
+            <!-- 预警 -->
+            <div class="card" id="card-alerts">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>🔔 预警</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-alerts')"></button>
+                </div>
+                <div class="card-body" id="alerts-container" style="max-height:200px;overflow-y:auto;">
+                    <div style="color:#888;font-size:11px;">暂无预警</div>
+                </div>
+            </div>
+            
+            <!-- 推荐机会 -->
+            <div class="card" id="card-opps">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>💡 推荐机会</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-opps')"></button>
+                </div>
+                <div class="card-body" id="opps-container" style="max-height:180px;overflow-y:auto;">
+                    <div style="color:#888;font-size:11px;">暂无推荐</div>
+                </div>
+            </div>
+            
+            <!-- 波段开放 -->
+            <div class="card" id="card-bandopening">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>⏰ 波段开放</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-bandopening')"></button>
+                </div>
+                <div class="card-body" id="bandopening-container" style="overflow-x:auto;">
+                    <div style="color:#888;font-size:11px;">加载中...</div>
+                </div>
+            </div>
+            
+            <!-- VOACAP -->
+            <div class="card" id="card-voacap">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>🌍 VOACAP</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-voacap')"></button>
+                </div>
+                <div class="card-body" id="voacap-container">
+                    <div style="color:#888;font-size:11px;">加载中...</div>
+                </div>
+            </div>
+            
+            <!-- 日志 -->
+            <div class="card" id="card-logs">
+                <div class="card-header">
+                    <span><span class="drag-handle">⋮⋮</span>📁 日志</span>
+                    <button class="collapse-btn" onclick="toggleCard('card-logs')"></button>
+                </div>
+                <div class="card-body">
+                    <div class="upload-area" id="upload-area">📄 拖拽上传 ADIF/CSV</div>
+                    <div id="logs-container" style="margin-top:8px;"></div>
+                    <div id="band-chart-container" style="margin-top:8px;height:150px;">
+                        <canvas id="band-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/leaflet.js?v=1.5"></script>
+    <script src="js/leaflet-heat.js?v=1.5"></script>
+    <script src="js/socket.io.min.js?v=1.5"></script>
+    <script src="js/app.js?v=1.24"></script>
+    <script src="js/alerts.js?v=1.5"></script>
+    <script src="js/score_display.js?v=1.5"></script>
+    <script src="js/push.js?v=1.5"></script>
+    
+    <!-- 台站编辑 Modal -->
+    <div class="modal-overlay" id="station-modal">
+        <div class="modal-box">
+            <div class="modal-title">✏️ 编辑台站配置</div>
+            <div class="modal-field">
+                <label>呼号 Callsign</label>
+                <input type="text" id="edit-callsign" placeholder="例如: BG2ENW">
+            </div>
+            <div class="modal-field">
+                <label>Grid 网格</label>
+                <input type="text" id="edit-grid" placeholder="例如: PN35HS">
+            </div>
+            <div class="modal-field">
+                <label>功率 Power (W)</label>
+                <input type="number" id="edit-power" placeholder="100">
+            </div>
+            <div class="modal-field">
+                <label>天线 Antenna</label>
+                <input type="text" id="edit-antenna" placeholder="例如: DP-80m">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeStationModal()">取消</button>
+                <button class="btn-primary" onclick="saveStationConfig()">保存</button>
+            </div>
+            <div class="modal-status" id="station-save-status"></div>
+        </div>
+    </div>
+    
+    <!-- 关注列表 Modal -->
+    <div class="modal-overlay" id="watchlist-modal">
+        <div class="modal-box">
+            <div class="modal-title">🎯 添加关注项</div>
+            <div class="modal-field">
+                <label>类型</label>
+                <select id="wl-type">
+                    <option value="callsign">呼号 Callsign</option>
+                    <option value="prefix">呼号前缀 Prefix</option>
+                    <option value="dxcc">DXCC 实体</option>
+                    <option value="band">波段 Band</option>
+                    <option value="mode">模式 Mode</option>
+                </select>
+            </div>
+            <div class="modal-field">
+                <label>目标值</label>
+                <input type="text" id="wl-value" placeholder="例如: JA1AAA, VK, 20m, FT8">
+            </div>
+            <div class="modal-field">
+                <label>偏好波段 (可选)</label>
+                <input type="text" id="wl-band" placeholder="例如: 20m, 40m">
+            </div>
+            <div class="modal-field">
+                <label>偏好模式 (可选)</label>
+                <input type="text" id="wl-mode" placeholder="例如: FT8, CW">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeWatchlistModal()">取消</button>
+                <button class="btn-primary" onclick="addWatchlistItem()">添加</button>
+            </div>
+            <div class="modal-status" id="wl-status"></div>
+        </div>
+    </div>
+</body>
+</html>

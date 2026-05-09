@@ -1,0 +1,5 @@
+{
+  "vapid_public_key": "mz6Bz7p18GRPepJNrebEjsFgp1iUs_mrKx-703EsWSi4UHWzlMlFiQdYMvINNZB1EUpcFcQgNLtkpeKYQqqzAg",
+  "vapid_private_key_pem": "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgEQeSwPEbsB5VPs6l\ncn6+5qabRv5KerOuu/bWu6jONrahRANCAASbPoHPunXwZE96kk2t5sSOwWCnWJSz\n+asrH7vTcSxZKLhQdbOUyUWJB1gy8g01kHURSlwVxCA0u2Sl4phCqrMC\n-----END PRIVATE KEY-----\n",
+  "vapid_email": "dx-guardian@bg2enw.com"
+}

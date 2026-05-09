@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日志分析 - DX Guardian</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --bg-panel: rgba(30,35,45,0.8);
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent-primary: #58a6ff;
+            --accent-secondary: #e94560;
+            --accent-orange: #FF9800;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; }
+        .page-title { font-size: 24px; color: var(--accent-primary); margin-bottom: 20px; }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        select, button {
+            background: var(--bg-panel);
+            border: 1px solid rgba(48,54,61,0.5);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        button:hover { border-color: var(--accent-primary); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: var(--bg-panel);
+            border: 1px solid rgba(48,54,61,0.5);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-value { font-size: 36px; font-weight: bold; color: var(--accent-primary); }
+        .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 5px; }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+        }
+        
+        .chart-panel {
+            background: var(--bg-panel);
+            border: 1px solid rgba(48,54,61,0.5);
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 350px;
+        }
+        
+        .panel-title {
+            font-size: 16px;
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(48,54,61,0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .time-label { font-size: 12px; color: var(--text-secondary); }
+        .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
+        
+        @media (max-width: 768px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="page-title">📊 日志统计分析</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>数据源:</label>
+                <select id="source">
+                    <option value="current">当前 Cluster 数据</option>
+                    <option value="wavelog">Wavelog OnlineLog</option>
+                    <option value="adi">ADIF 文件</option>
+                </select>
+            </div>
+            <button id="refreshBtn" onclick="loadData()">🔄 刷新</button>
+            <span id="timeLabel" class="time-label"></span>
+        </div>
+        
+        <div id="loading" class="loading">正在加载数据...</div>
+        
+        <div id="content" style="display: none;">
+            <div class="stats-grid" id="stats"></div>
+            
+            <div class="charts-grid">
+                <div class="chart-panel">
+                    <h3 class="panel-title">🌍 DXCC 分布 TOP 15</h3>
+                    <canvas id="dxccChart"></canvas>
+                </div>
+                <div class="chart-panel">
+                    <h3 class="panel-title">📡 波段分布</h3>
+                    <canvas id="bandChart"></canvas>
+                </div>
+                <div class="chart-panel">
+                    <h3 class="panel-title">📶 模式分布</h3>
+                    <canvas id="modeChart"></canvas>
+                </div>
+                <div class="chart-panel">
+                    <h3 class="panel-title">⏰ 24 小时活动分布</h3>
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const CHART_COLORS = [
+            '#58a6ff', '#e94560', '#3fb950', '#d29922', '#8b949e',
+            '#a371f7', '#ff7b72', '#38bdf8', '#4ade80', '#facc15',
+            '#f97316', '#ec4899', '#06b6d4', '#84cc16', '#e11d48'
+        ];
+        
+        let charts = {};
+        
+        async function loadData() {
+            const btn = document.getElementById('refreshBtn');
+            const timeLabel = document.getElementById('timeLabel');
+            const source = document.getElementById('source').value;
+            
+            btn.disabled = true;
+            btn.textContent = '⏳ 加载中...';
+            
+            try {
+                const start = Date.now();
+                const r = await fetch('/api/analysis/summary?source=' + source);
+                const d = await r.json();
+                
+                if (!d.success) throw new Error(d.error);
+                
+                const elapsed = Date.now() - start;
+                timeLabel.textContent = `最后更新：${new Date().toLocaleTimeString()} (${elapsed}ms)`;
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+                
+                renderStats(d.summary);
+                renderCharts(d.analysis);
+                
+            } catch(e) {
+                document.getElementById('loading').innerHTML = '❌ 加载失败：' + e.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 刷新';
+            }
+        }
+        
+        function renderStats(s) {
+            document.getElementById('stats').innerHTML = [
+                {l:'总 QSO', v:s.total_qso},
+                {l:'唯一电台', v:s.unique_calls},
+                {l:'DXCC 数', v:s.unique_dxcc},
+                {l:'Grid 数', v:s.unique_grids}
+            ].map(i => `
+                <div class="stat-card">
+                    <div class="stat-value">${i.v}</div>
+                    <div class="stat-label">${i.l}</div>
+                </div>
+            `).join('');
+        }
+        
+        function renderCharts(a) {
+            // DXCC Chart
+            createChart('dxccChart', 'bar', {
+                labels: a.dxcc_distribution.top_15.map(x => x.dxcc),
+                datasets: [{
+                    label: 'QSO 数量',
+                    data: a.dxcc_distribution.top_15.map(x => x.count),
+                    backgroundColor: CHART_COLORS[0],
+                    borderRadius: 4
+                }]
+            }, {
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(48,54,61,0.5)' }, ticks: { color: '#8b949e' } },
+                    y: { grid: { display: false }, ticks: { color: '#8b949e' } }
+                }
+            });
+            
+            // Band Chart
+            const bandOrder = ['160m','80m','60m','40m','30m','20m','17m','15m','12m','10m','6m','2m'];
+            const bandData = bandOrder.filter(b => a.band_distribution.by_band[b]).map(b => ({
+                band: b, count: a.band_distribution.by_band[b]
+            }));
+            
+            createChart('bandChart', 'doughnut', {
+                labels: bandData.map(x => x.band),
+                datasets: [{
+                    data: bandData.map(x => x.count),
+                    backgroundColor: CHART_COLORS.slice(0, bandData.length),
+                    borderWidth: 0
+                }]
+            }, {
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#8b949e', usePointStyle: true } }
+                }
+            });
+            
+            // Mode Chart
+            createChart('modeChart', 'pie', {
+                labels: Object.keys(a.mode_distribution.by_mode),
+                datasets: [{
+                    data: Object.values(a.mode_distribution.by_mode),
+                    backgroundColor: CHART_COLORS.slice(0, Object.keys(a.mode_distribution.by_mode).length),
+                    borderWidth: 0
+                }]
+            }, {
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#8b949e', usePointStyle: true } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.label}: ${ctx.raw} (${((ctx.raw/a.mode_distribution.total)*100).toFixed(1)}%)`
+                        }
+                    }
+                }
+            });
+            
+            // Time Chart
+            const hours = Array.from({length: 24}, (_, i) => i);
+            const timeData = hours.map(h => a.time_distribution.by_hour[h] || 0);
+            
+            createChart('timeChart', 'line', {
+                labels: hours.map(h => `${h}:00`),
+                datasets: [{
+                    label: 'QSO',
+                    data: timeData,
+                    borderColor: CHART_COLORS[1],
+                    backgroundColor: 'rgba(233,69,96,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }]
+            }, {
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(48,54,61,0.3)' }, ticks: { color: '#8b949e' } },
+                    y: { grid: { color: 'rgba(48,54,61,0.3)' }, ticks: { color: '#8b949e' } }
+                }
+            });
+        }
+        
+        function createChart(canvasId, type, data, options) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            
+            Chart.defaults.color = '#8b949e';
+            Chart.defaults.borderColor = 'rgba(48,54,61,0.5)';
+            
+            charts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    ...options
+                }
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>

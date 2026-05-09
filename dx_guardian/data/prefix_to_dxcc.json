@@ -1,0 +1,437 @@
+{
+  "1": {
+    "dxcc": "United States",
+    "lat": 39.8,
+    "lon": -98.5
+  },
+  "2": {
+    "dxcc": "Canada",
+    "lat": 56.1,
+    "lon": -106.3
+  },
+  "3": {
+    "dxcc": "Mexico",
+    "lat": 23.6,
+    "lon": -102.5
+  },
+  "4": {
+    "dxcc": "Brazil",
+    "lat": -14.2,
+    "lon": -51.9
+  },
+  "5": {
+    "dxcc": "Argentina",
+    "lat": -38.4,
+    "lon": -63.6
+  },
+  "6": {
+    "dxcc": "United Kingdom",
+    "lat": 55.3,
+    "lon": -3.4
+  },
+  "7": {
+    "dxcc": "France",
+    "lat": 46.2,
+    "lon": 2.2
+  },
+  "8": {
+    "dxcc": "Germany",
+    "lat": 51.1,
+    "lon": 10.4
+  },
+  "9": {
+    "dxcc": "Spain",
+    "lat": 40.4,
+    "lon": -3.7
+  },
+  "10": {
+    "dxcc": "Italy",
+    "lat": 41.8,
+    "lon": 12.5
+  },
+  "A": {
+    "dxcc": "China",
+    "lat": 35.8,
+    "lon": 104.1
+  },
+  "B": {
+    "dxcc": "China",
+    "lat": 35.8,
+    "lon": 104.1
+  },
+  "BG": {
+    "dxcc": "China",
+    "lat": 35.8,
+    "lon": 104.1
+  },
+  "BH": {
+    "dxcc": "China",
+    "lat": 35.8,
+    "lon": 104.1
+  },
+  "BI": {
+    "dxcc": "China",
+    "lat": 35.8,
+    "lon": 104.1
+  },
+  "BJ": {
+    "dxcc": "China",
+    "lat": 35.8,
+    "lon": 104.1
+  },
+  "JA": {
+    "dxcc": "Japan",
+    "lat": 36.2,
+    "lon": 138.2
+  },
+  "JE": {
+    "dxcc": "Japan",
+    "lat": 36.2,
+    "lon": 138.2
+  },
+  "7K": {
+    "dxcc": "Japan",
+    "lat": 36.2,
+    "lon": 138.2
+  },
+  "VK": {
+    "dxcc": "Australia",
+    "lat": -25.2,
+    "lon": 133.7
+  },
+  "VH": {
+    "dxcc": "Australia",
+    "lat": -25.2,
+    "lon": 133.7
+  },
+  "ZL": {
+    "dxcc": "New Zealand",
+    "lat": -40.9,
+    "lon": 174.8
+  },
+  "HS": {
+    "dxcc": "Thailand",
+    "lat": 15.8,
+    "lon": 100.9
+  },
+  "E2": {
+    "dxcc": "Thailand",
+    "lat": 15.8,
+    "lon": 100.9
+  },
+  "9V": {
+    "dxcc": "Singapore",
+    "lat": 1.3,
+    "lon": 103.8
+  },
+  "9M": {
+    "dxcc": "Malaysia",
+    "lat": 4.2,
+    "lon": 101.9
+  },
+  "YC": {
+    "dxcc": "Indonesia",
+    "lat": -0.7,
+    "lon": 113.9
+  },
+  "XE": {
+    "dxcc": "Mexico",
+    "lat": 23.6,
+    "lon": -102.5
+  },
+  "LU": {
+    "dxcc": "Argentina",
+    "lat": -38.4,
+    "lon": -63.6
+  },
+  "PY": {
+    "dxcc": "Brazil",
+    "lat": -14.2,
+    "lon": -51.9
+  },
+  "G": {
+    "dxcc": "United Kingdom",
+    "lat": 55.3,
+    "lon": -3.4
+  },
+  "M": {
+    "dxcc": "United Kingdom",
+    "lat": 55.3,
+    "lon": -3.4
+  },
+  "F": {
+    "dxcc": "France",
+    "lat": 46.2,
+    "lon": 2.2
+  },
+  "DL": {
+    "dxcc": "Germany",
+    "lat": 51.1,
+    "lon": 10.4
+  },
+  "I": {
+    "dxcc": "Italy",
+    "lat": 41.8,
+    "lon": 12.5
+  },
+  "EA": {
+    "dxcc": "Spain",
+    "lat": 40.4,
+    "lon": -3.7
+  },
+  "OH": {
+    "dxcc": "Finland",
+    "lat": 61.9,
+    "lon": 25.7
+  },
+  "SM": {
+    "dxcc": "Sweden",
+    "lat": 60.1,
+    "lon": 18.6
+  },
+  "LA": {
+    "dxcc": "Norway",
+    "lat": 60.4,
+    "lon": 8.8
+  },
+  "OZ": {
+    "dxcc": "Denmark",
+    "lat": 56.2,
+    "lon": 9.5
+  },
+  "PA": {
+    "dxcc": "Netherlands",
+    "lat": 52.1,
+    "lon": 5.2
+  },
+  "ON": {
+    "dxcc": "Belgium",
+    "lat": 50.5,
+    "lon": 4.4
+  },
+  "HB": {
+    "dxcc": "Switzerland",
+    "lat": 46.8,
+    "lon": 8.2
+  },
+  "OE": {
+    "dxcc": "Austria",
+    "lat": 47.5,
+    "lon": 14.5
+  },
+  "SP": {
+    "dxcc": "Poland",
+    "lat": 51.9,
+    "lon": 19.1
+  },
+  "OK": {
+    "dxcc": "Czech Republic",
+    "lat": 49.8,
+    "lon": 15.4
+  },
+  "OM": {
+    "dxcc": "Slovakia",
+    "lat": 48.6,
+    "lon": 19.6
+  },
+  "HA": {
+    "dxcc": "Hungary",
+    "lat": 47.1,
+    "lon": 19.5
+  },
+  "YO": {
+    "dxcc": "Romania",
+    "lat": 45.9,
+    "lon": 24.9
+  },
+  "UA": {
+    "dxcc": "Russia",
+    "lat": 61.5,
+    "lon": 105.3
+  },
+  "4X": {
+    "dxcc": "Israel",
+    "lat": 31.0,
+    "lon": 34.8
+  },
+  "TA": {
+    "dxcc": "Turkey",
+    "lat": 38.9,
+    "lon": 35.2
+  },
+  "ZS": {
+    "dxcc": "South Africa",
+    "lat": -30.5,
+    "lon": 22.9
+  },
+  "VU": {
+    "dxcc": "India",
+    "lat": 20.5,
+    "lon": 78.9
+  },
+  "A6": {
+    "dxcc": "UAE",
+    "lat": 23.4,
+    "lon": 53.8
+  },
+  "AP": {
+    "dxcc": "Pakistan",
+    "lat": 30.3,
+    "lon": 69.3
+  },
+  "BY": {
+    "dxcc": "China",
+    "lat": 35.8,
+    "lon": 104.1
+  },
+  "BV": {
+    "dxcc": "Taiwan",
+    "lat": 23.6,
+    "lon": 120.9
+  },
+  "HL": {
+    "dxcc": "Korea",
+    "lat": 35.9,
+    "lon": 127.7
+  },
+  "DS": {
+    "dxcc": "Korea",
+    "lat": 35.9,
+    "lon": 127.7
+  },
+  "DU": {
+    "dxcc": "Philippines",
+    "lat": 12.8,
+    "lon": 121.7
+  },
+  "YB": {
+    "dxcc": "Indonesia",
+    "lat": -0.7,
+    "lon": 113.9
+  },
+  "FT5W": {
+    "dxcc": "Amsterdam Island",
+    "lat": -37.83,
+    "lon": 77.55
+  },
+  "FT5Z": {
+    "dxcc": "Crozet Island",
+    "lat": -46.43,
+    "lon": 51.8
+  },
+  "FT5X": {
+    "dxcc": "Clipperton Island",
+    "lat": 10.3,
+    "lon": -109.22
+  },
+  "FT/X": {
+    "dxcc": "France",
+    "lat": 46.0,
+    "lon": 2.0
+  },
+  "FT/W": {
+    "dxcc": "France",
+    "lat": 46.0,
+    "lon": 2.0
+  },
+  "VK9C": {
+    "dxcc": "Cocos Islands",
+    "lat": -12.17,
+    "lon": 96.88
+  },
+  "VK9D": {
+    "dxcc": "Chesterfield Islands",
+    "lat": -18.07,
+    "lon": 158.52
+  },
+  "VK9E": {
+    "dxcc": "Elizabeth Reef",
+    "lat": -29.95,
+    "lon": 159.1
+  },
+  "VK9L": {
+    "dxcc": "Lord Howe Island",
+    "lat": -31.55,
+    "lon": 159.05
+  },
+  "VK9M": {
+    "dxcc": "Mellish Reef",
+    "lat": -17.33,
+    "lon": 159.23
+  },
+  "VK9N": {
+    "dxcc": "Norfolk Island",
+    "lat": -29.03,
+    "lon": 167.93
+  },
+  "VK9W": {
+    "dxcc": "Willis Island",
+    "lat": -16.25,
+    "lon": 149.95
+  },
+  "VP8": {
+    "dxcc": "Falkland Islands",
+    "lat": -51.7,
+    "lon": -59.0
+  },
+  "VP8G": {
+    "dxcc": "South Georgia Island",
+    "lat": -54.28,
+    "lon": -37.0
+  },
+  "VP8H": {
+    "dxcc": "South Sandwich Islands",
+    "lat": -58.0,
+    "lon": -27.0
+  },
+  "VP8O": {
+    "dxcc": "South Orkney Islands",
+    "lat": -60.75,
+    "lon": -45.5
+  },
+  "VP8S": {
+    "dxcc": "South Shetland Islands",
+    "lat": -62.5,
+    "lon": -59.75
+  },
+  "CE0C": {
+    "dxcc": "Easter Island",
+    "lat": -27.1,
+    "lon": -109.37
+  },
+  "CE0F": {
+    "dxcc": "Juan Fernandez Islands",
+    "lat": -33.67,
+    "lon": -80.73
+  },
+  "CE0L": {
+    "dxcc": "Desventuradas Islands",
+    "lat": -26.32,
+    "lon": -80.63
+  },
+  "OH0J": {
+    "dxcc": "Aland Islands",
+    "lat": 60.17,
+    "lon": 19.95
+  },
+  "OH0M": {
+    "dxcc": "Aland Islands",
+    "lat": 60.17,
+    "lon": 19.95
+  },
+  "OH0X": {
+    "dxcc": "Aland Islands",
+    "lat": 60.17,
+    "lon": 19.95
+  },
+  "RI1AN": {
+    "dxcc": "Antarctica",
+    "lat": -78.43,
+    "lon": 106.88
+  },
+  "RI1AV": {
+    "dxcc": "Antarctica",
+    "lat": -78.43,
+    "lon": 106.88
+  }
+}
