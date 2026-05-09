@@ -184,6 +184,22 @@ server:
   host: "0.0.0.0"
   port: 5001
   debug: false
+
+# ==================== 前端配置 ====================
+# 前端独立部署时，通过此配置连接后端
+frontend:
+  # 后端 API 地址（前端通过此地址获取数据）
+  # 独立部署时修改为实际后端地址
+  api_url: "http://localhost:5001"
+  
+  # WebSocket 地址（可选，用于实时推送）
+  # 如果不配置，则前端使用 HTTP 轮询
+  # ws_url: "ws://localhost:5001/ws"
+  
+  # 刷新间隔（毫秒）
+  refresh_interval: 300000  # 5分钟
+  
+  # 地图服务
   # 高德地图（国内用户）
   amap:
     key: "YOUR_AMAP_KEY"
@@ -191,6 +207,24 @@ server:
   # 或 Leaflet（国外用户）
   leaflet:
     tile_server: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+
+# 前端独立部署示例：
+# 1. 拷贝 frontend/ 目录到 Wavelog 目录
+# 2. 修改 config.yaml 中的 frontend.api_url 为实际后端地址
+# 3. 通过 Wavelog 访问前端页面
+#
+# Wavelog 集成模式下的目录结构：
+# wavelog/
+# ├── application/
+# ├── assets/
+# ├── dx_frontend/              # 前端目录
+# │   ├── index.html
+# │   ├── css/
+# │   ├── js/
+# │   └── config.js             # 前端配置（API 地址等）
+# └── dx_guardian/              # 后端目录
+#     ├── backend/
+#     └── config.yaml
 
 # ==================== 应用配置 ====================
 app:
@@ -414,33 +448,60 @@ class SpotActivity:
 ## 九、文件结构
 
 ```
-# Wavelog 集成模式
+# Wavelog 集成模式（前后端分开部署）
 wavelog/
 ├── application/
 ├── assets/
-├── dx_guardian/                    # DX Guardian 子模块
-│   ├── config.yaml                 # 配置文件
+├── dx_frontend/                    # 前端（可独立部署）
+│   ├── config.js                   # 前端配置（API 地址等）
+│   ├── index.html
+│   ├── css/
+│   └── js/
+├── dx_guardian/                    # 后端
+│   ├── config.yaml                 # 后端配置
 │   ├── backend/
-│   │   ├── app.py                  # Flask 主程序
-│   │   ├── config_loader.py        # YAML 配置加载
-│   │   ├── models/
-│   │   ├── services/
-│   │   │   ├── pskreporter.py
-│   │   │   ├── cluster.py
-│   │   │   ├── pota.py
-│   │   │   ├── solar.py
-│   │   │   └── wavelog_db.py       # Wavelog 数据库
-│   │   ├── routes/
-│   │   └── modules/
-│   │       ├── deduplicator.py
-│   │       ├── coordinate_resolver.py
-│   │       ├── alert_engine.py     # 预警引擎
-│   │       └── scorer.py           # 评分系统
-│   └── frontend/
-│       ├── index.html
-│       ├── css/
-│       └── js/
+│   │   ├── app.py
+│   │   ├── config_loader.py
+│   │   └── ...
+│   └── data/
 └── ...
+
+# 独立模式
+dx_guardian/
+├── config.yaml                     # 配置文件
+├── backend/
+│   ├── app.py
+│   ├── config_loader.py
+│   ├── services/
+│   │   ├── adif_parser.py
+│   │   └── ...
+│   └── modules/
+├── frontend/                       # 前端
+│   ├── config.js                   # 前端配置
+│   ├── index.html
+│   ├── css/
+│   └── js/
+└── data/
+    └── input/
+        └── my_log.adif
+```
+
+### 前端配置文件 (config.js)
+
+前端通过 `config.js` 配置后端连接信息：
+
+```javascript
+// frontend/config.js
+window.DX Guardian_CONFIG = {
+    apiUrl: 'http://localhost:5001',
+    refreshInterval: 300000,
+    mapProvider: 'amap',
+    amap: {
+        key: 'YOUR_AMAP_KEY',
+        securityCode: 'YOUR_SECURITY_CODE'
+    }
+};
+```
 
 # 独立模式
 dx_guardian/
@@ -473,6 +534,61 @@ dx_guardian/
 - **ADIF 路径**：通过配置文件指定，不内置
 - **本地存储**：使用 SQLite
 - **无认证**：默认单用户本地使用
+
+### 10.3 前端独立部署
+
+前端可以独立部署，通过配置文件连接后端：
+
+```javascript
+// frontend/config.js
+// 前端配置文件
+
+window.DX Guardian_CONFIG = {
+    // 后端 API 地址（必填）
+    // 部署时修改为实际后端地址
+    apiUrl: 'http://localhost:5001',
+    
+    // WebSocket 地址（可选）
+    // 如果不配置，使用 HTTP 轮询
+    // wsUrl: 'ws://localhost:5001/ws',
+    
+    // 刷新间隔（毫秒）
+    refreshInterval: 300000,  // 5分钟
+    
+    // 地图类型：'amap' | 'leaflet'
+    mapProvider: 'amap',
+    
+    // 高德地图配置
+    amap: {
+        key: 'YOUR_AMAP_KEY',
+        securityCode: 'YOUR_SECURITY_CODE'
+    },
+    
+    // Leaflet 配置
+    leaflet: {
+        tileServer: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    }
+};
+```
+
+**部署步骤**：
+1. 拷贝 `frontend/` 目录到目标位置
+2. 修改 `config.js` 中的 `apiUrl` 为实际后端地址
+3. 访问 index.html 即可
+
+**Wavelog 集成示例**：
+```
+wavelog/
+├── application/
+├── assets/
+├── dx_frontend/          # 前端独立目录
+│   ├── index.html
+│   ├── config.js         # 修改 apiUrl 即可
+│   ├── css/
+│   └── js/
+└── dx_guardian/          # 后端
+    ├── backend/
+    └── config.yaml
 
 ---
 
