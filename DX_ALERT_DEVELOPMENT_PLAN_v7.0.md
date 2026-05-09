@@ -5,8 +5,6 @@
 > 基于：v6.4 完整版重构
 > 呼号：BG2ENW | 位置：PN35HS（哈尔滨）
 > 参考目标：
-> - 功能参考：https://dxcontest.org/
-> - 地图参考：https://pskreporter.info/pskmap.html
 
 ---
 
