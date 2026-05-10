@@ -291,7 +291,7 @@
 - **新增配置项**:
   ```python
   WAVELOG_URL = 'https://cqcqcq.com.cn/'
-  WAVELOG_API_KEY = 'wl853e15b5f7745'
+  WAVELOG_API_KEY = '***REMOVED***'
   WAVELOG_STATION_CALLSIGN = ''
   LOG_ANALYSIS_MAX_DAYS = 365
   LOG_ANALYSIS_CACHE_TTL = 300

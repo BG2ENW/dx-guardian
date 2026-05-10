@@ -133,7 +133,7 @@ DEDUP_MAX_SIZE = int(os.getenv('DEDUP_MAX_SIZE', '10000'))
 WAVELOG_URL = os.getenv('WAVELOG_URL', 'https://cqcqcq.com.cn/')
 
 # Wavelog API 密钥 (在 Wavelog 设置中生成)
-WAVELOG_API_KEY = os.getenv('WAVELOG_API_KEY', 'wl853e15b5f7745')
+WAVELOG_API_KEY = os.getenv('WAVELOG_API_KEY', '***REMOVED***')
 
 # 站台呼号 (可选，用于多站台站点)
 WAVELOG_STATION_CALLSIGN = os.getenv('WAVELOG_STATION_CALLSIGN', '')

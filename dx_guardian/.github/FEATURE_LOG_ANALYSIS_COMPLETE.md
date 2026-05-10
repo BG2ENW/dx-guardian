@@ -115,14 +115,14 @@ curl "http://localhost:5000/api/analysis/summary?source=adi"
 在 `backend/config.py` 中设置：
 ```python
 WAVELOG_URL = 'https://cqcqcq.com.cn/'
-WAVELOG_API_KEY = 'wl853e15b5f7745'
+WAVELOG_API_KEY = '***REMOVED***'
 WAVELOG_STATION_CALLSIGN = ''  # 多站台站点需要
 ```
 
 ### 环境变量（可选）
 ```bash
 export WAVELOG_URL="https://cqcqcq.com.cn/"
-export WAVELOG_API_KEY="wl853e15b5f7745"
+export WAVELOG_API_KEY="***REMOVED***"
 export LOG_ANALYSIS_MAX_DAYS=365
 export LOG_ANALYSIS_CACHE_TTL=300
 ```
